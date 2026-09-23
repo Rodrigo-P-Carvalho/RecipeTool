@@ -12,3 +12,27 @@ Route::post('/logout', [LoginController::class, 'destroy'])
 Route::view('/dashboard', 'dashboard')
     ->middleware('auth')
     ->name('dashboard');
+
+Route::view('/products', 'products')
+    ->middleware('auth')
+    ->name('products');
+
+Route::view('/products/sales', 'products.sales')
+    ->middleware('auth')
+    ->name('products.sales');
+
+Route::view('/products/list', 'products.list')
+    ->middleware('auth')
+    ->name('products.list');
+
+Route::view('/recipes', 'recipes')
+    ->middleware('auth')
+    ->name('recipes');
+
+Route::view('/ingredients', 'ingredients')
+    ->middleware('auth')
+    ->name('ingredients');
+
+Route::view('/users', 'users')
+    ->middleware('auth')
+    ->name('users');

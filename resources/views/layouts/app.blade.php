@@ -38,24 +38,60 @@
                 <nav class="space-y-2 p-5" aria-label="Main navigation">
                     <p class="mb-4 px-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Workspace</p>
 
-                    <a href="#" class="flex items-center gap-3 rounded-xl bg-blue-50 px-3 py-3 text-sm font-semibold text-blue-700">
+                    <a href="{{ route('dashboard') }}" @class([
+                        'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
+                        'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('dashboard'),
+                        'font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-700' => ! request()->routeIs('dashboard'),
+                    ])>
                         <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-700 text-white">⌂</span>
                         Overview
                     </a>
-                    <a href="#" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-blue-700">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500">P</span>
+                    <a href="{{ route('products') }}" @class([
+                        'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
+                        'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('products'),
+                        'font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-700' => ! request()->routeIs('products'),
+                    ])>
+                        <span @class([
+                            'flex h-8 w-8 items-center justify-center rounded-lg',
+                            'bg-blue-700 text-white' => request()->routeIs('products'),
+                            'bg-slate-100 text-slate-500' => ! request()->routeIs('products'),
+                        ])>P</span>
                         Products
                     </a>
-                    <a href="#" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-blue-700">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500">R</span>
+                    <a href="{{ route('recipes') }}" @class([
+                        'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
+                        'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('recipes'),
+                        'font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-700' => ! request()->routeIs('recipes'),
+                    ])>
+                        <span @class([
+                            'flex h-8 w-8 items-center justify-center rounded-lg',
+                            'bg-blue-700 text-white' => request()->routeIs('recipes'),
+                            'bg-slate-100 text-slate-500' => ! request()->routeIs('recipes'),
+                        ])>R</span>
                         Recipes
                     </a>
-                    <a href="#" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-blue-700">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500">I</span>
+                    <a href="{{ route('ingredients') }}" @class([
+                        'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
+                        'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('ingredients'),
+                        'font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-700' => ! request()->routeIs('ingredients'),
+                    ])>
+                        <span @class([
+                            'flex h-8 w-8 items-center justify-center rounded-lg',
+                            'bg-blue-700 text-white' => request()->routeIs('ingredients'),
+                            'bg-slate-100 text-slate-500' => ! request()->routeIs('ingredients'),
+                        ])>I</span>
                         Ingredients
                     </a>
-                    <a href="#" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-blue-700">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500">U</span>
+                    <a href="{{ route('users') }}" @class([
+                        'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
+                        'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('users'),
+                        'font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-700' => ! request()->routeIs('users'),
+                    ])>
+                        <span @class([
+                            'flex h-8 w-8 items-center justify-center rounded-lg',
+                            'bg-blue-700 text-white' => request()->routeIs('users'),
+                            'bg-slate-100 text-slate-500' => ! request()->routeIs('users'),
+                        ])>U</span>
                         Users
                     </a>
                 </nav>
@@ -63,11 +99,11 @@
 
             <div class="border-b border-slate-200 bg-white pt-20 lg:hidden">
                 <nav class="flex gap-2 overflow-x-auto px-6 py-3" aria-label="Mobile navigation">
-                    <a href="#" class="whitespace-nowrap rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">Overview</a>
-                    <a href="#" class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Products</a>
-                    <a href="#" class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Recipes</a>
-                    <a href="#" class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Ingredients</a>
-                    <a href="#" class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Users</a>
+                    <a href="{{ route('dashboard') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('dashboard'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('dashboard')])>Overview</a>
+                    <a href="{{ route('products') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('products'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('products')])>Products</a>
+                    <a href="{{ route('recipes') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('recipes'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('recipes')])>Recipes</a>
+                    <a href="{{ route('ingredients') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('ingredients'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('ingredients')])>Ingredients</a>
+                    <a href="{{ route('users') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('users'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('users')])>Users</a>
                 </nav>
             </div>
 

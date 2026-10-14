@@ -17,6 +17,9 @@ return new class extends Migration
             $table->decimal('quantidade_estoque', 14, 3);
             $table->string('unidade_medida');
             $table->decimal('estoque_minimo', 14, 3);
+            $table->decimal('preco_embalagem', 12, 2);
+            $table->decimal('tamanho_embalagem', 14, 3);
+            $table->decimal('custo_unitario', 14, 4);
             $table->string('status_ingrediente');
             $table->timestamps();
         });

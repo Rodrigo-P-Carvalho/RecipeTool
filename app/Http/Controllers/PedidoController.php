@@ -18,12 +18,7 @@ class PedidoController extends Controller
 {
     public function index(): View
     {
-        $pedidos = Pedido::query()
-            ->with(['usuario', 'itens.produto'])
-            ->latest('data_pedido')
-            ->paginate(20);
-
-        return view('orders.index', compact('pedidos'));
+        return view('orders.index');
     }
 
     public function create(): View

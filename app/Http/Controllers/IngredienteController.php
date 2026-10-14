@@ -12,11 +12,23 @@ use Illuminate\View\View;
 
 class IngredienteController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $ingredientes = Ingrediente::query()->orderBy('nome')->paginate(20);
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $search = trim($validated['search'] ?? '');
 
-        return view('ingredients', compact('ingredientes'));
+        $ingredientes = Ingrediente::query()
+            ->when(
+                $search !== '',
+                fn ($query) => $query->whereLike('nome', "%{$search}%"),
+            )
+            ->orderBy('nome')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('ingredients', compact('ingredientes', 'search'));
     }
 
     public function create(): View

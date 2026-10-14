@@ -11,11 +11,23 @@ use Illuminate\View\View;
 
 class ProdutoController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $produtos = Produto::query()->orderBy('nome')->paginate(20);
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $search = trim($validated['search'] ?? '');
 
-        return view('products', compact('produtos'));
+        $produtos = Produto::query()
+            ->when(
+                $search !== '',
+                fn ($query) => $query->whereLike('nome', "%{$search}%"),
+            )
+            ->orderBy('nome')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('products', compact('produtos', 'search'));
     }
 
     public function create(): View

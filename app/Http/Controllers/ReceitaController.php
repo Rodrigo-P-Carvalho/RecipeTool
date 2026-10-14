@@ -13,11 +13,28 @@ use Illuminate\View\View;
 
 class ReceitaController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $receitas = Receita::query()->with('produto')->orderBy('id')->paginate(20);
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $search = trim($validated['search'] ?? '');
 
-        return view('recipes', compact('receitas'));
+        $receitas = Receita::query()
+            ->with('produto')
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($query) use ($search): void {
+                    $query->whereHas(
+                        'produto',
+                        fn ($produtoQuery) => $produtoQuery->whereLike('nome', "%{$search}%"),
+                    )->orWhereLike('descricao', "%{$search}%");
+                });
+            })
+            ->orderBy('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('recipes', compact('receitas', 'search'));
     }
 
     public function create(): View

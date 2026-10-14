@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>Sign in · {{ config('app.name', 'Recipe Tool') }}</title>
+        <title>Entrar · {{ config('app.name', 'Recipe Tool') }}</title>
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
@@ -24,12 +24,12 @@
                         </div>
 
                         <p class="max-w-sm text-4xl font-semibold leading-tight tracking-tight">
-                            Bring every recipe and ingredient together.
+                            Reúna todas as receitas e ingredientes em um só lugar.
                         </p>
                     </div>
 
                     <p class="relative max-w-sm text-sm leading-6 text-blue-100">
-                        Manage the ingredients that make your products, all in one clear and simple workspace.
+                        Gerencie os ingredientes que compõem seus produtos em um espaço claro e simples.
                     </p>
                 </section>
 
@@ -45,9 +45,9 @@
                         </div>
 
                         <div class="mb-8">
-                            <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-blue-700">Welcome back</p>
-                            <h1 class="text-3xl font-semibold tracking-tight text-slate-950">Sign in to your workspace</h1>
-                            <p class="mt-3 text-sm leading-6 text-slate-500">Enter your details to continue managing your recipes.</p>
+                            <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-blue-700">Bem-vindo de volta</p>
+                            <h1 class="text-3xl font-semibold tracking-tight text-slate-950">Entre na sua área de trabalho</h1>
+                            <p class="mt-3 text-sm leading-6 text-slate-500">Insira seus dados para continuar gerenciando suas receitas.</p>
                         </div>
 
                         @if ($errors->any())
@@ -60,7 +60,7 @@
                             @csrf
 
                             <div>
-                                <label for="email" class="mb-2 block text-sm font-medium text-slate-700">Email address</label>
+                                <label for="email" class="mb-2 block text-sm font-medium text-slate-700">Endereço de e-mail</label>
                                 <input
                                     id="email"
                                     name="email"
@@ -70,7 +70,7 @@
                                     required
                                     autofocus
                                     class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-                                    placeholder="you@example.com"
+                                    placeholder="voce@exemplo.com"
                                 >
                                 @error('email')
                                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -79,8 +79,8 @@
 
                             <div>
                                 <div class="mb-2 flex items-center justify-between">
-                                    <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
-                                    <span class="text-xs text-slate-400">Keep it secure</span>
+                                    <label for="password" class="block text-sm font-medium text-slate-700">Senha</label>
+                                    <span class="text-xs text-slate-400">Mantenha isso seguro</span>
                                 </div>
                                 <input
                                     id="password"
@@ -89,7 +89,7 @@
                                     autocomplete="current-password"
                                     required
                                     class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-                                    placeholder="Your password"
+                                    placeholder="Sua senha"
                                 >
                                 @error('password')
                                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -98,11 +98,11 @@
 
                             <label class="flex items-center gap-3 text-sm text-slate-600">
                                 <input name="remember" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500">
-                                Remember me
+                                Lembrar de mim
                             </label>
 
                             <button type="submit" class="w-full rounded-xl bg-blue-700 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/20 transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200">
-                                Sign in
+                                Entrar
                             </button>
                         </form>
                     </div>

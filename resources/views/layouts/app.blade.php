@@ -27,7 +27,7 @@
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-blue-50 hover:text-blue-700">
-                                Log out
+                                Sair
                             </button>
                         </form>
                     </div>
@@ -35,8 +35,8 @@
             </header>
 
             <aside class="fixed bottom-0 left-0 top-20 z-20 hidden w-64 border-r border-slate-200 bg-white lg:block">
-                <nav class="space-y-2 p-5" aria-label="Main navigation">
-                    <p class="mb-4 px-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Workspace</p>
+                <nav class="space-y-2 p-5" aria-label="Navegação principal">
+                    <p class="mb-4 px-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Área de trabalho</p>
 
                     <a href="{{ route('dashboard') }}" @class([
                         'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
@@ -44,7 +44,7 @@
                         'font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-700' => ! request()->routeIs('dashboard'),
                     ])>
                         <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-700 text-white">⌂</span>
-                        Overview
+                        Visão geral
                     </a>
                     <a href="{{ route('products') }}" @class([
                         'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
@@ -56,7 +56,7 @@
                             'bg-blue-700 text-white' => request()->routeIs('products'),
                             'bg-slate-100 text-slate-500' => ! request()->routeIs('products'),
                         ])>P</span>
-                        Products
+                        Produtos
                     </a>
                     <a href="{{ route('recipes') }}" @class([
                         'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
@@ -68,7 +68,7 @@
                             'bg-blue-700 text-white' => request()->routeIs('recipes'),
                             'bg-slate-100 text-slate-500' => ! request()->routeIs('recipes'),
                         ])>R</span>
-                        Recipes
+                        Receitas
                     </a>
                     <a href="{{ route('ingredients') }}" @class([
                         'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
@@ -80,7 +80,7 @@
                             'bg-blue-700 text-white' => request()->routeIs('ingredients'),
                             'bg-slate-100 text-slate-500' => ! request()->routeIs('ingredients'),
                         ])>I</span>
-                        Ingredients
+                        Ingredientes
                     </a>
                     <a href="{{ route('users') }}" @class([
                         'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
@@ -92,18 +92,18 @@
                             'bg-blue-700 text-white' => request()->routeIs('users'),
                             'bg-slate-100 text-slate-500' => ! request()->routeIs('users'),
                         ])>U</span>
-                        Users
+                        Usuários
                     </a>
                 </nav>
             </aside>
 
             <div class="border-b border-slate-200 bg-white pt-20 lg:hidden">
-                <nav class="flex gap-2 overflow-x-auto px-6 py-3" aria-label="Mobile navigation">
-                    <a href="{{ route('dashboard') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('dashboard'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('dashboard')])>Overview</a>
-                    <a href="{{ route('products') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('products'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('products')])>Products</a>
-                    <a href="{{ route('recipes') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('recipes'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('recipes')])>Recipes</a>
-                    <a href="{{ route('ingredients') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('ingredients'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('ingredients')])>Ingredients</a>
-                    <a href="{{ route('users') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('users'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('users')])>Users</a>
+                <nav class="flex gap-2 overflow-x-auto px-6 py-3" aria-label="Navegação mobile">
+                    <a href="{{ route('dashboard') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('dashboard'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('dashboard')])>Visão geral</a>
+                    <a href="{{ route('products') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('products'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('products')])>Produtos</a>
+                    <a href="{{ route('recipes') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('recipes'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('recipes')])>Receitas</a>
+                    <a href="{{ route('ingredients') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('ingredients'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('ingredients')])>Ingredientes</a>
+                    <a href="{{ route('users') }}" @class(['whitespace-nowrap rounded-lg px-3 py-2 text-sm', 'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('users'), 'font-medium text-slate-600 hover:bg-slate-50' => ! request()->routeIs('users')])>Usuários</a>
                 </nav>
             </div>
 

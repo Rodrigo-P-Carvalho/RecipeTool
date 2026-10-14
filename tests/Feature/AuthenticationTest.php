@@ -50,7 +50,7 @@ class AuthenticationTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('These credentials do not match our records.');
+            ->assertSee('As credenciais informadas não correspondem aos nossos registros.');
 
         $this->assertGuest();
     }
@@ -63,5 +63,23 @@ class AuthenticationTest extends TestCase
 
         $response->assertRedirect(route('login'));
         $this->assertGuest();
+    }
+
+    public function test_registration_creates_an_account_and_authenticates_the_new_user(): void
+    {
+        $response = $this->post(route('register.store'), [
+            'name' => 'Recipe Admin',
+            'email' => 'new-admin@example.com',
+            'password' => 'secure-password',
+            'password_confirmation' => 'secure-password',
+        ]);
+
+        $response->assertRedirect(route('dashboard'))
+            ->assertSessionHas('success');
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'name' => 'Recipe Admin',
+            'email' => 'new-admin@example.com',
+        ]);
     }
 }

@@ -22,6 +22,7 @@ class SeederAndViewsTest extends TestCase
         $admin = User::query()->where('email', 'admin@recipetool.com')->sole();
 
         $this->assertTrue(Hash::check('password', $admin->password));
+        $this->assertSame('admin', $admin->role);
         $this->assertDatabaseCount('ingredientes', 8);
         $this->assertDatabaseCount('produtos', 2);
         $this->assertDatabaseCount('receitas', 2);

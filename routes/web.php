@@ -9,6 +9,7 @@ use App\Http\Controllers\ProducaoController;
 use App\Http\Controllers\ProdutoController;
 use App\Http\Controllers\ReceitaController;
 use App\Http\Controllers\RelatorioController;
+use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -33,35 +34,49 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
+    Route::get('/trocar-senha', [AuthController::class, 'createForcedPasswordChange'])
+        ->name('password.change');
+    Route::put('/trocar-senha', [AuthController::class, 'updateForcedPassword'])
+        ->name('password.change.update');
 
-    Route::view('/dashboard', 'dashboard')->name('dashboard');
+    Route::middleware('password.change')->group(function () {
+        Route::middleware('role:admin,gerente')->group(function () {
+            Route::resource('users', UsuarioController::class)
+                ->except(['show'])
+                ->parameters(['users' => 'usuario'])
+                ->names(['index' => 'users']);
+        });
 
-    Route::resource('ingredients', IngredienteController::class)
-        ->parameters(['ingredients' => 'ingrediente'])
-        ->names(['index' => 'ingredients']);
-    Route::resource('products', ProdutoController::class)
-        ->parameters(['products' => 'produto'])
-        ->names(['index' => 'products']);
-    Route::resource('recipes', ReceitaController::class)
-        ->parameters(['recipes' => 'receita'])
-        ->names(['index' => 'recipes']);
-    Route::resource('orders', PedidoController::class)
-        ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
-        ->parameters(['orders' => 'pedido']);
-    Route::resource('productions', ProducaoController::class)
-        ->only(['index', 'create', 'store', 'show'])
-        ->parameters(['productions' => 'producao']);
-    Route::resource('stock-adjustments', AjusteEstoqueController::class)
-        ->only(['index', 'create', 'store', 'show'])
-        ->parameters(['stock-adjustments' => 'ajusteEstoque']);
+        Route::middleware('role:admin,gerente,funcionario')->group(function () {
+            Route::view('/dashboard', 'dashboard')->name('dashboard');
 
-    Route::get('/stock', [EstoqueController::class, 'index'])->name('stock.index');
-    Route::get('/reports/production.csv', [RelatorioController::class, 'production'])
-        ->name('reports.production');
-    Route::get('/reports/ingredient-consumption.csv', [RelatorioController::class, 'ingredientConsumption'])
-        ->name('reports.ingredient-consumption');
+            Route::resource('ingredients', IngredienteController::class)
+                ->parameters(['ingredients' => 'ingrediente'])
+                ->names(['index' => 'ingredients']);
+            Route::resource('products', ProdutoController::class)
+                ->parameters(['products' => 'produto'])
+                ->names(['index' => 'products']);
+            Route::resource('recipes', ReceitaController::class)
+                ->parameters(['recipes' => 'receita'])
+                ->names(['index' => 'recipes']);
+            Route::resource('orders', PedidoController::class)
+                ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
+                ->parameters(['orders' => 'pedido']);
+            Route::resource('productions', ProducaoController::class)
+                ->only(['index', 'create', 'store', 'show'])
+                ->parameters(['productions' => 'producao']);
+            Route::resource('stock-adjustments', AjusteEstoqueController::class)
+                ->only(['index', 'create', 'store', 'show'])
+                ->parameters(['stock-adjustments' => 'ajusteEstoque']);
 
-    Route::view('/products/sales', 'products.sales')->name('products.sales');
-    Route::view('/products/list', 'products.list')->name('products.list');
-    Route::view('/users', 'users')->name('users');
+            Route::get('/stock', [EstoqueController::class, 'index'])->name('stock.index');
+            Route::get('/reports/production.csv', [RelatorioController::class, 'production'])
+                ->name('reports.production');
+            Route::get('/reports/ingredient-consumption.csv', [RelatorioController::class, 'ingredientConsumption'])
+                ->name('reports.ingredient-consumption');
+
+            Route::view('/products/sales', 'products.sales')->name('products.sales');
+            Route::view('/products/list', 'products.list')->name('products.list');
+        });
+    });
 });

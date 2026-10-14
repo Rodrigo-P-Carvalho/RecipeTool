@@ -40,6 +40,10 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
+        if ($request->user()->precisa_trocar_senha) {
+            return redirect()->route('password.change');
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 
@@ -118,6 +122,28 @@ class AuthController extends Controller
         }
 
         return redirect()->route('login')->with('status', __($status));
+    }
+
+    public function createForcedPasswordChange(): View
+    {
+        return view('auth.trocar-senha');
+    }
+
+    public function updateForcedPassword(Request $request): RedirectResponse
+    {
+        $attributes = $request->validate([
+            'password' => ['required', 'confirmed', PasswordRule::defaults()],
+        ]);
+
+        $request->user()->forceFill([
+            'password' => $attributes['password'],
+            'precisa_trocar_senha' => false,
+        ])->save();
+
+        $request->session()->regenerate();
+
+        return redirect()->route('dashboard')
+            ->with('success', 'Senha atualizada com sucesso.');
     }
 
     public function destroy(Request $request): RedirectResponse

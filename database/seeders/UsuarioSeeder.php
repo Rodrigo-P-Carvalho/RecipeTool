@@ -15,6 +15,7 @@ class UsuarioSeeder extends Seeder
                 'name' => env('ADMIN_NAME', 'Administrador'),
                 'password' => env('ADMIN_PASSWORD', 'password'),
                 'email_verified_at' => now(),
+                'role' => 'admin',
             ],
         );
     }

@@ -38,11 +38,13 @@
                 <h2 class="mt-4 text-base font-semibold text-slate-900">Movimentações</h2>
                 <p class="mt-1 text-sm text-slate-500">Consulte o histórico ou registre um ajuste manual.</p>
             </a>
-            <a href="{{ route('users') }}" class="group rounded-xl border border-slate-200 p-5 no-underline transition hover:border-blue-300 hover:bg-blue-50/50">
-                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 font-semibold text-slate-700">U</span>
-                <h2 class="mt-4 text-base font-semibold text-slate-900">Usuários</h2>
-                <p class="mt-1 text-sm text-slate-500">Acesse a área de usuários do sistema.</p>
-            </a>
+            @if (in_array(auth()->user()->role, ['admin', 'gerente'], true))
+                <a href="{{ route('users') }}" class="group rounded-xl border border-slate-200 p-5 no-underline transition hover:border-blue-300 hover:bg-blue-50/50">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 font-semibold text-slate-700">U</span>
+                    <h2 class="mt-4 text-base font-semibold text-slate-900">Usuários</h2>
+                    <p class="mt-1 text-sm text-slate-500">Gerencie as contas e os níveis de acesso.</p>
+                </a>
+            @endif
         </div>
     </section>
 @endsection

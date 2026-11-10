@@ -35,7 +35,7 @@ class AuthController extends Controller
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()
                 ->withErrors(['email' => 'As credenciais informadas não correspondem aos nossos registros.'])
-                ->onlyInput('email');
+                ->onlyInput('email', 'remember');
         }
 
         $request->session()->regenerate();

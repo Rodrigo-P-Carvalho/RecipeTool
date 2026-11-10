@@ -23,18 +23,32 @@
                 </div>
             @endif
 
-            <form action="{{ route('password.change.update') }}" method="POST" class="mt-7 space-y-5">
+            <form action="{{ route('password.change.update') }}" method="POST" class="mt-7 space-y-5" data-password-change-form>
                 @csrf
                 @method('PUT')
                 <div>
                     <label for="password" class="mb-2 block text-sm font-medium text-slate-700">Nova senha</label>
-                    <input id="password" name="password" type="password" required autocomplete="new-password" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100">
+                    <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100">
                     @error('password')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label for="password_confirmation" class="mb-2 block text-sm font-medium text-slate-700">Confirme a nova senha</label>
                     <input id="password_confirmation" name="password_confirmation" type="password" required autocomplete="new-password" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100">
                 </div>
+                <ul id="password-requirements" class="space-y-2 text-sm text-slate-500" aria-label="Requisitos da nova senha">
+                    <li class="flex items-center gap-2" data-password-requirement="length">
+                        <span aria-hidden="true" data-requirement-status>○</span>
+                        <span>Pelo menos 8 caracteres</span>
+                    </li>
+                    <li class="flex items-center gap-2" data-password-requirement="confirmation">
+                        <span aria-hidden="true" data-requirement-status>○</span>
+                        <span>Preencha a confirmação da senha</span>
+                    </li>
+                    <li class="flex items-center gap-2" data-password-requirement="match">
+                        <span aria-hidden="true" data-requirement-status>○</span>
+                        <span>As senhas devem corresponder</span>
+                    </li>
+                </ul>
                 <button type="submit" class="w-full rounded-xl bg-blue-700 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/20 transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200">Salvar nova senha</button>
             </form>
 

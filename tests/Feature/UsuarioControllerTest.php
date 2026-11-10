@@ -194,7 +194,10 @@ class UsuarioControllerTest extends TestCase
 
         $this->get(route('password.change'))
             ->assertOk()
-            ->assertSee('Este é seu primeiro acesso');
+            ->assertSee('Este é seu primeiro acesso')
+            ->assertSee('Pelo menos 8 caracteres')
+            ->assertSee('Preencha a confirmação da senha')
+            ->assertSee('As senhas devem corresponder');
 
         $this->put(route('password.change.update'), [
             'password' => 'MinhaSenhaSegura123!',

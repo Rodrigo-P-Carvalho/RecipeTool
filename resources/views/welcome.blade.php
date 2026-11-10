@@ -56,7 +56,7 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('login.store') }}" method="POST" class="space-y-5">
+                        <form action="{{ route('login.store') }}" method="POST" class="space-y-5" data-login-form>
                             @csrf
 
                             <div>
@@ -96,8 +96,15 @@
                                 @enderror
                             </div>
 
-                            <label class="flex items-center gap-3 text-sm text-slate-600">
-                                <input name="remember" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+                            <label for="remember" class="flex items-center gap-3 text-sm text-slate-600">
+                                <input
+                                    id="remember"
+                                    name="remember"
+                                    type="checkbox"
+                                    value="1"
+                                    @checked(old('remember'))
+                                    class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500"
+                                >
                                 Lembrar de mim
                             </label>
 

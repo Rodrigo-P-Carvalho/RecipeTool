@@ -61,6 +61,11 @@ class AjusteEstoqueController extends Controller
                 ->lockForUpdate()
                 ->findOrFail($attributes['ajustavel_id']);
             $quantidade = (float) $attributes['quantidade'];
+
+            if ($ajustavel instanceof Ingrediente) {
+                $quantidade = $ajustavel->unidade_medida->converterParaBase($quantidade);
+            }
+
             $saldo = (float) $ajustavel->quantidade_estoque;
 
             if ($attributes['tipo_ajuste'] === 'saida' && $saldo < $quantidade) {

@@ -17,7 +17,7 @@
             <p class="mt-1 text-sm">Os seguintes ingredientes precisam de reposição:</p>
             <ul class="mt-3 list-inside list-disc space-y-1 text-sm">
                 @foreach ($ingredientesBaixoEstoque as $ingrediente)
-                    <li>{{ $ingrediente->nome }} — saldo {{ number_format((float) $ingrediente->quantidade_estoque, 3, ',', '.') }} {{ $ingrediente->unidade_medida }} (mínimo {{ number_format((float) $ingrediente->estoque_minimo, 3, ',', '.') }} {{ $ingrediente->unidade_medida }})</li>
+                    <li>{{ $ingrediente->nome }} — saldo {{ $ingrediente->quantidade_estoque_formatada }} (mínimo {{ $ingrediente->estoque_minimo_formatado }})</li>
                 @endforeach
             </ul>
         </div>
@@ -49,8 +49,8 @@
                             @php($estoqueBaixo = (float) $ingrediente->quantidade_estoque <= (float) $ingrediente->estoque_minimo)
                             <tr @class(['bg-red-50' => $estoqueBaixo, 'hover:bg-slate-50' => ! $estoqueBaixo])>
                                 <td class="px-5 py-4 text-sm font-semibold text-slate-900">{{ $ingrediente->nome }}</td>
-                                <td class="px-5 py-4 text-sm text-slate-600">{{ number_format((float) $ingrediente->quantidade_estoque, 3, ',', '.') }} {{ $ingrediente->unidade_medida }}</td>
-                                <td class="px-5 py-4 text-sm text-slate-600">{{ number_format((float) $ingrediente->estoque_minimo, 3, ',', '.') }} {{ $ingrediente->unidade_medida }}</td>
+                                <td class="px-5 py-4 text-sm text-slate-600">{{ $ingrediente->quantidade_estoque_formatada }}</td>
+                                <td class="px-5 py-4 text-sm text-slate-600">{{ $ingrediente->estoque_minimo_formatado }}</td>
                                 <td class="px-5 py-4">
                                     @if ($estoqueBaixo)
                                         <span class="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800">Repor</span>

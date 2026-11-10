@@ -11,7 +11,7 @@
         <dl class="grid gap-x-6 gap-y-5 sm:grid-cols-2">
             <div><dt class="text-sm text-slate-500">Item</dt><dd class="mt-1 font-medium text-slate-900">{{ $ajuste->ajustavel?->nome ?? 'Item removido' }}</dd></div>
             <div><dt class="text-sm text-slate-500">Tipo</dt><dd class="mt-1 font-medium text-slate-900">{{ str_replace('_', ' ', ucfirst($ajuste->tipo_ajuste)) }}</dd></div>
-            <div><dt class="text-sm text-slate-500">Quantidade</dt><dd class="mt-1 font-medium text-slate-900">{{ number_format((float) $ajuste->quantidade, 3, ',', '.') }}</dd></div>
+            <div><dt class="text-sm text-slate-500">Quantidade</dt><dd class="mt-1 font-medium text-slate-900">{{ $ajuste->quantidade_formatada }}</dd></div>
             <div><dt class="text-sm text-slate-500">Data e hora</dt><dd class="mt-1 font-medium text-slate-900">{{ $ajuste->data_ajuste->format('d/m/Y H:i') }}</dd></div>
             <div><dt class="text-sm text-slate-500">Responsável</dt><dd class="mt-1 font-medium text-slate-900">{{ $ajuste->usuario->name }}</dd></div>
             <div class="sm:col-span-2"><dt class="text-sm text-slate-500">Justificativa</dt><dd class="mt-1 font-medium text-slate-900">{{ $ajuste->justificativa }}</dd></div>

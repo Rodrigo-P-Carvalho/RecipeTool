@@ -25,12 +25,12 @@
                     <option value="">Selecione um item</option>
                     <optgroup label="Ingredientes">
                         @foreach ($ingredientes as $ingrediente)
-                            <option value="{{ App\Models\Ingrediente::class }}|{{ $ingrediente->id }}" @selected($ajustavelSelecionado === App\Models\Ingrediente::class.'|'.$ingrediente->id)>{{ $ingrediente->nome }} — {{ number_format((float) $ingrediente->quantidade_estoque, 3, ',', '.') }} {{ $ingrediente->unidade_medida }}</option>
+                            <option value="{{ App\Models\Ingrediente::class }}|{{ $ingrediente->id }}" data-unidade="{{ $ingrediente->unidade_medida->value }}" @selected($ajustavelSelecionado === App\Models\Ingrediente::class.'|'.$ingrediente->id)>{{ $ingrediente->nome }} — {{ $ingrediente->quantidade_estoque_formatada }}</option>
                         @endforeach
                     </optgroup>
                     <optgroup label="Produtos">
                         @foreach ($produtos as $produto)
-                            <option value="{{ App\Models\Produto::class }}|{{ $produto->id }}" @selected($ajustavelSelecionado === App\Models\Produto::class.'|'.$produto->id)>{{ $produto->nome }} — estoque {{ number_format((float) $produto->quantidade_estoque, 3, ',', '.') }}</option>
+                            <option value="{{ App\Models\Produto::class }}|{{ $produto->id }}" data-unidade="" @selected($ajustavelSelecionado === App\Models\Produto::class.'|'.$produto->id)>{{ $produto->nome }} — estoque {{ number_format((float) $produto->quantidade_estoque, 3, ',', '.') }}</option>
                         @endforeach
                     </optgroup>
                 </select>
@@ -47,7 +47,7 @@
                 @error('tipo_ajuste')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label for="quantidade" class="block text-sm font-medium text-slate-700">Quantidade</label>
+                <label for="quantidade" class="block text-sm font-medium text-slate-700">Quantidade (<span id="unidade-ajuste"></span>)</label>
                 <input id="quantidade" name="quantidade" type="number" min="0.001" step="0.001" value="{{ old('quantidade') }}" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('quantidade') border-red-500 @enderror">
                 @error('quantidade')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
             </div>
@@ -72,7 +72,8 @@
 @push('scripts')
     <script>
         document.getElementById('form-ajuste-estoque').addEventListener('submit', (evento) => {
-            const [tipo, id] = document.getElementById('ajustavel_selecao').value.split('|');
+            const selecao = document.getElementById('ajustavel_selecao');
+            const [tipo, id] = selecao.value.split('|');
 
             if (!tipo || !id) {
                 evento.preventDefault();
@@ -83,5 +84,12 @@
             document.getElementById('ajustavel_type').value = tipo;
             document.getElementById('ajustavel_id').value = id;
         });
+
+        document.getElementById('ajustavel_selecao').addEventListener('change', (evento) => {
+            document.getElementById('unidade-ajuste').textContent =
+                evento.target.selectedOptions[0]?.dataset.unidade ?? '';
+        });
+
+        document.getElementById('ajustavel_selecao').dispatchEvent(new Event('change'));
     </script>
 @endpush

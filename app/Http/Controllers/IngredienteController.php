@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UnidadeMedida;
 use App\Models\Ingrediente;
 use App\Models\Receita;
 use Illuminate\Http\RedirectResponse;
@@ -9,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class IngredienteController extends Controller
 {
@@ -33,24 +36,33 @@ class IngredienteController extends Controller
 
     public function create(): View
     {
-        return view('ingredients.create');
+        return view('ingredients.create', [
+            'unidadesMedida' => UnidadeMedida::cases(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $attributes = $request->validate([
             'nome' => ['required', 'string', 'max:255'],
-            'quantidade_estoque' => ['required', 'numeric', 'min:0'],
-            'unidade_medida' => ['required', 'string', 'max:50'],
+            'quantidade_inicial' => ['required', 'numeric', 'min:0'],
+            'unidade_medida' => ['required', Rule::enum(UnidadeMedida::class)],
             'estoque_minimo' => ['required', 'numeric', 'min:0'],
+            'unidade_embalagem' => ['required', Rule::enum(UnidadeMedida::class)],
             'status_ingrediente' => ['required', 'string', 'max:100'],
             'preco_embalagem' => ['required', 'numeric', 'min:0'],
             'tamanho_embalagem' => ['required', 'numeric', 'gt:0'],
         ]);
-        $attributes['custo_unitario'] = $this->calcularCustoUnitario(
-            $attributes['preco_embalagem'],
-            $attributes['tamanho_embalagem'],
+        $this->validarUnidadesCompativeis($attributes);
+
+        $unidadeMedida = UnidadeMedida::from($attributes['unidade_medida']);
+        $attributes['quantidade_estoque'] = $unidadeMedida->converterParaBase(
+            (float) $attributes['quantidade_inicial'],
         );
+        $attributes['estoque_minimo'] = $unidadeMedida->converterParaBase(
+            (float) $attributes['estoque_minimo'],
+        );
+        unset($attributes['quantidade_inicial']);
 
         $ingrediente = DB::transaction(function () use ($attributes): Ingrediente {
             $ingrediente = Ingrediente::query()->create($attributes);
@@ -79,23 +91,30 @@ class IngredienteController extends Controller
 
     public function edit(Ingrediente $ingrediente): View
     {
-        return view('ingredients.edit', compact('ingrediente'));
+        return view('ingredients.edit', [
+            'ingrediente' => $ingrediente,
+            'unidadesMedida' => UnidadeMedida::cases(),
+        ]);
     }
 
     public function update(Request $request, Ingrediente $ingrediente): RedirectResponse
     {
         $attributes = $request->validate([
             'nome' => ['required', 'string', 'max:255'],
-            'unidade_medida' => ['required', 'string', 'max:50'],
+            'unidade_medida' => ['required', Rule::enum(UnidadeMedida::class)],
             'estoque_minimo' => ['required', 'numeric', 'min:0'],
+            'unidade_embalagem' => ['required', Rule::enum(UnidadeMedida::class)],
             'status_ingrediente' => ['required', 'string', 'max:100'],
             'preco_embalagem' => ['required', 'numeric', 'min:0'],
             'tamanho_embalagem' => ['required', 'numeric', 'gt:0'],
         ]);
-        $attributes['custo_unitario'] = $this->calcularCustoUnitario(
-            $attributes['preco_embalagem'],
-            $attributes['tamanho_embalagem'],
+        $this->validarUnidadesCompativeis(
+            $attributes,
+            UnidadeMedida::from($ingrediente->getRawOriginal('unidade_medida')),
         );
+
+        $attributes['estoque_minimo'] = UnidadeMedida::from($attributes['unidade_medida'])
+            ->converterParaBase((float) $attributes['estoque_minimo']);
 
         DB::transaction(function () use ($attributes, $ingrediente): void {
             $ingrediente->update($attributes);
@@ -129,13 +148,24 @@ class IngredienteController extends Controller
         return redirect()->route('ingredients')->with('success', 'Ingrediente excluído com sucesso.');
     }
 
-    private function calcularCustoUnitario(string|int|float $precoEmbalagem, string|int|float $tamanhoEmbalagem): string
+    /**
+     * @param array{unidade_medida: string, unidade_embalagem: string} $attributes
+     */
+    private function validarUnidadesCompativeis(array $attributes, ?UnidadeMedida $unidadeOriginal = null): void
     {
-        return (string) DB::query()
-            ->selectRaw(
-                'ROUND((CAST(? AS NUMERIC) * 1.0) / CAST(? AS NUMERIC), 4) AS custo_unitario',
-                [$precoEmbalagem, $tamanhoEmbalagem],
-            )
-            ->value('custo_unitario');
+        $unidadeMedida = UnidadeMedida::from($attributes['unidade_medida']);
+        $unidadeEmbalagem = UnidadeMedida::from($attributes['unidade_embalagem']);
+
+        if ($unidadeOriginal !== null && $unidadeOriginal->tipo() !== $unidadeMedida->tipo()) {
+            throw ValidationException::withMessages([
+                'unidade_medida' => 'Não é possível alterar o tipo de medida de um ingrediente já cadastrado.',
+            ]);
+        }
+
+        if ($unidadeMedida->tipo() !== $unidadeEmbalagem->tipo()) {
+            throw ValidationException::withMessages([
+                'unidade_embalagem' => 'A unidade da embalagem deve ser compatível com a unidade de medida.',
+            ]);
+        }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -26,6 +27,26 @@ class AjusteEstoque extends Model
             'data_ajuste' => 'datetime',
             'quantidade' => 'decimal:3',
         ];
+    }
+
+    protected function quantidadeFormatada(): Attribute
+    {
+        return Attribute::make(
+            get: function (): string {
+                $quantidade = (float) $this->quantidade;
+                $ajustavel = $this->ajustavel;
+
+                if ($ajustavel instanceof Ingrediente) {
+                    $unidade = $ajustavel->unidade_medida;
+                    $quantidade = $unidade->converterDaBase($quantidade);
+                    $formatada = rtrim(rtrim(number_format($quantidade, 3, ',', '.'), '0'), ',');
+
+                    return $formatada.' '.$unidade->value;
+                }
+
+                return rtrim(rtrim(number_format($quantidade, 3, ',', '.'), '0'), ',');
+            },
+        );
     }
 
     public function usuario(): BelongsTo

@@ -23,13 +23,13 @@ class RecipeToolRelationshipsTest extends TestCase
 
         $ingrediente = Ingrediente::query()->create([
             'nome' => 'Farinha',
-            'quantidade_estoque' => '8.500',
+            'quantidade_estoque' => '8500.000',
             'unidade_medida' => 'kg',
-            'estoque_minimo' => '1.000',
+            'estoque_minimo' => '1000.000',
+            'unidade_embalagem' => 'kg',
             'status_ingrediente' => 'ativo',
             'preco_embalagem' => '25.00',
-            'tamanho_embalagem' => '5000',
-            'custo_unitario' => '0.0050',
+            'tamanho_embalagem' => '5.000',
         ]);
 
         $produto = Produto::query()->create([
@@ -47,7 +47,7 @@ class RecipeToolRelationshipsTest extends TestCase
         $itemReceita = ItemReceita::query()->create([
             'receita_id' => $receita->id,
             'ingrediente_id' => $ingrediente->id,
-            'quantidade_necessaria' => '0.500',
+            'quantidade_necessaria' => '500.000',
         ]);
 
         $pedido = Pedido::query()->create([

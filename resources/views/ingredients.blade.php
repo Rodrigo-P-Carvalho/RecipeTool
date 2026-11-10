@@ -42,9 +42,9 @@
                         @php($estoqueBaixo = (float) $ingrediente->quantidade_estoque <= (float) $ingrediente->estoque_minimo)
                         <tr @class(['bg-red-50' => $estoqueBaixo, 'hover:bg-slate-50' => ! $estoqueBaixo])>
                             <td class="whitespace-nowrap px-5 py-4 text-sm font-semibold text-slate-900">{{ $ingrediente->nome }}</td>
-                            <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ number_format((float) $ingrediente->quantidade_estoque, 3, ',', '.') }} {{ $ingrediente->unidade_medida }}</td>
-                            <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ number_format((float) $ingrediente->estoque_minimo, 3, ',', '.') }} {{ $ingrediente->unidade_medida }}</td>
-                            <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">R$ {{ number_format((float) $ingrediente->custo_unitario, 4, ',', '.') }}</td>
+                            <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $ingrediente->quantidade_estoque_formatada }}</td>
+                            <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $ingrediente->estoque_minimo_formatado }}</td>
+                            <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $ingrediente->custo_formatado }}</td>
                             <td class="whitespace-nowrap px-5 py-4">
                                 <span @class([
                                     'inline-flex rounded-full px-2.5 py-1 text-xs font-semibold',

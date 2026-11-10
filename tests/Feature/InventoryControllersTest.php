@@ -29,12 +29,13 @@ class InventoryControllersTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('ingredients.store'), [
             'nome' => 'Cacau',
-            'quantidade_estoque' => '3.500',
+            'quantidade_inicial' => '3.500',
             'unidade_medida' => 'kg',
             'estoque_minimo' => '0.500',
+            'unidade_embalagem' => 'kg',
             'status_ingrediente' => 'ativo',
             'preco_embalagem' => '25.00',
-            'tamanho_embalagem' => '5000',
+            'tamanho_embalagem' => '5',
         ]);
 
         $ingrediente = Ingrediente::query()->sole();
@@ -45,14 +46,20 @@ class InventoryControllersTest extends TestCase
             'ajustavel_type' => Ingrediente::class,
             'ajustavel_id' => $ingrediente->id,
             'tipo_ajuste' => 'cadastro_entrada',
-            'quantidade' => '3.500',
+            'quantidade' => '3500.000',
         ]);
         $this->assertDatabaseHas('ingredientes', [
             'id' => $ingrediente->id,
+            'quantidade_estoque' => '3500.000',
+            'estoque_minimo' => '500.000',
             'preco_embalagem' => '25.00',
-            'tamanho_embalagem' => '5000.000',
+            'tamanho_embalagem' => '5.000',
             'custo_unitario' => '0.0050',
         ]);
+
+        expect($ingrediente->fresh()->quantidade_estoque_formatada)->toBe('3,5 kg')
+            ->and($ingrediente->fresh()->estoque_minimo_formatado)->toBe('0,5 kg')
+            ->and($ingrediente->fresh()->custo_formatado)->toBe('R$ 5,00 / kg');
     }
 
     public function test_recipe_cost_is_calculated_from_ingredient_unit_cost_and_recalculated_when_package_price_changes(): void
@@ -61,12 +68,12 @@ class InventoryControllersTest extends TestCase
         $ingrediente = Ingrediente::query()->create([
             'nome' => 'Farinha',
             'quantidade_estoque' => '5000.000',
-            'unidade_medida' => 'g',
-            'estoque_minimo' => '100.000',
+            'unidade_medida' => 'kg',
+            'estoque_minimo' => '1.000',
+            'unidade_embalagem' => 'g',
             'status_ingrediente' => 'ativo',
             'preco_embalagem' => '25.00',
             'tamanho_embalagem' => '5000.000',
-            'custo_unitario' => '0.0050',
         ]);
         $produto = Produto::query()->create([
             'nome' => 'Bolo',
@@ -79,7 +86,7 @@ class InventoryControllersTest extends TestCase
             'produto_id' => $produto->id,
             'descricao' => 'Bolo de farinha',
             'itens' => [
-                ['ingrediente_id' => $ingrediente->id, 'quantidade_necessaria' => '250.000'],
+                ['ingrediente_id' => $ingrediente->id, 'quantidade_necessaria' => '0.250'],
             ],
         ]);
 
@@ -90,11 +97,17 @@ class InventoryControllersTest extends TestCase
             'id' => $receita->id,
             'custo_total' => '1.25',
         ]);
+        $this->assertDatabaseHas('itens_receita', [
+            'receita_id' => $receita->id,
+            'ingrediente_id' => $ingrediente->id,
+            'quantidade_necessaria' => '250.000',
+        ]);
 
         $this->put(route('ingredients.update', $ingrediente), [
             'nome' => 'Farinha',
-            'unidade_medida' => 'g',
-            'estoque_minimo' => '100.000',
+            'unidade_medida' => 'kg',
+            'estoque_minimo' => '0.100',
+            'unidade_embalagem' => 'g',
             'status_ingrediente' => 'ativo',
             'preco_embalagem' => '50.00',
             'tamanho_embalagem' => '5000.000',
@@ -103,6 +116,7 @@ class InventoryControllersTest extends TestCase
 
         $this->assertDatabaseHas('ingredientes', [
             'id' => $ingrediente->id,
+            'estoque_minimo' => '100.000',
             'custo_unitario' => '0.0100',
         ]);
         $this->assertDatabaseHas('receitas', [
@@ -111,18 +125,77 @@ class InventoryControllersTest extends TestCase
         ]);
     }
 
+    public function test_ingredient_packaging_unit_must_match_the_measurement_type(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->from(route('ingredients.create'))
+            ->post(route('ingredients.store'), [
+                'nome' => 'Farinha',
+                'quantidade_inicial' => '1',
+                'unidade_medida' => 'kg',
+                'estoque_minimo' => '0',
+                'unidade_embalagem' => 'ml',
+                'status_ingrediente' => 'ativo',
+                'preco_embalagem' => '10.00',
+                'tamanho_embalagem' => '1',
+            ]);
+
+        $response->assertRedirect(route('ingredients.create'))
+            ->assertSessionHasErrors('unidade_embalagem');
+        $this->assertDatabaseCount('ingredientes', 0);
+    }
+
+    public function test_existing_ingredient_cannot_change_its_measurement_type(): void
+    {
+        $user = User::factory()->create();
+        $ingrediente = Ingrediente::query()->create([
+            'nome' => 'Farinha',
+            'quantidade_estoque' => '1500.000',
+            'unidade_medida' => 'g',
+            'estoque_minimo' => '100.000',
+            'unidade_embalagem' => 'g',
+            'status_ingrediente' => 'ativo',
+            'preco_embalagem' => '10.00',
+            'tamanho_embalagem' => '1000.000',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from(route('ingredients.edit', $ingrediente))
+            ->put(route('ingredients.update', $ingrediente), [
+                'nome' => 'Farinha',
+                'unidade_medida' => 'ml',
+                'estoque_minimo' => '100',
+                'unidade_embalagem' => 'ml',
+                'status_ingrediente' => 'ativo',
+                'preco_embalagem' => '10.00',
+                'tamanho_embalagem' => '1000',
+            ]);
+
+        $response->assertRedirect(route('ingredients.edit', $ingrediente))
+            ->assertSessionHasErrors([
+                'unidade_medida' => 'Não é possível alterar o tipo de medida de um ingrediente já cadastrado.',
+            ]);
+        $this->assertDatabaseHas('ingredientes', [
+            'id' => $ingrediente->id,
+            'unidade_medida' => 'g',
+            'quantidade_estoque' => '1500.000',
+        ]);
+    }
+
     public function test_production_deducts_ingredients_adds_products_and_records_both_movements(): void
     {
         $user = User::factory()->create();
         $ingrediente = Ingrediente::query()->create([
             'nome' => 'Farinha',
-            'quantidade_estoque' => '2.000',
+            'quantidade_estoque' => '2000.000',
             'unidade_medida' => 'kg',
-            'estoque_minimo' => '0.500',
+            'estoque_minimo' => '500.000',
+            'unidade_embalagem' => 'g',
             'status_ingrediente' => 'ativo',
             'preco_embalagem' => '25.00',
             'tamanho_embalagem' => '5000',
-            'custo_unitario' => '0.0050',
         ]);
         $produto = Produto::query()->create([
             'nome' => 'Pão',
@@ -138,7 +211,7 @@ class InventoryControllersTest extends TestCase
         ItemReceita::query()->create([
             'receita_id' => $receita->id,
             'ingrediente_id' => $ingrediente->id,
-            'quantidade_necessaria' => '0.250',
+            'quantidade_necessaria' => '250.000',
         ]);
 
         $response = $this->actingAs($user)->post(route('productions.store'), [
@@ -151,7 +224,7 @@ class InventoryControllersTest extends TestCase
             ->assertSessionHas('success');
         $this->assertDatabaseHas('ingredientes', [
             'id' => $ingrediente->id,
-            'quantidade_estoque' => '1.500',
+            'quantidade_estoque' => '1500.000',
         ]);
         $this->assertDatabaseHas('produtos', [
             'id' => $produto->id,
@@ -162,7 +235,7 @@ class InventoryControllersTest extends TestCase
             'ajustavel_type' => Ingrediente::class,
             'ajustavel_id' => $ingrediente->id,
             'tipo_ajuste' => 'producao_saida',
-            'quantidade' => '0.500',
+            'quantidade' => '500.000',
         ]);
         $this->assertDatabaseHas('ajustes_estoque', [
             'usuario_id' => $user->id,
@@ -178,13 +251,13 @@ class InventoryControllersTest extends TestCase
         $user = User::factory()->create();
         $ingrediente = Ingrediente::query()->create([
             'nome' => 'Farinha',
-            'quantidade_estoque' => '0.300',
+            'quantidade_estoque' => '300.000',
             'unidade_medida' => 'kg',
-            'estoque_minimo' => '0.100',
+            'estoque_minimo' => '100.000',
+            'unidade_embalagem' => 'g',
             'status_ingrediente' => 'ativo',
             'preco_embalagem' => '25.00',
             'tamanho_embalagem' => '5000',
-            'custo_unitario' => '0.0050',
         ]);
         $produto = Produto::query()->create([
             'nome' => 'Pão',
@@ -200,7 +273,7 @@ class InventoryControllersTest extends TestCase
         ItemReceita::query()->create([
             'receita_id' => $receita->id,
             'ingrediente_id' => $ingrediente->id,
-            'quantidade_necessaria' => '0.250',
+            'quantidade_necessaria' => '250.000',
         ]);
 
         $response = $this->actingAs($user)
@@ -214,7 +287,7 @@ class InventoryControllersTest extends TestCase
             ->assertSessionHasErrors('receita_id');
         $this->assertDatabaseHas('ingredientes', [
             'id' => $ingrediente->id,
-            'quantidade_estoque' => '0.300',
+            'quantidade_estoque' => '300.000',
         ]);
         $this->assertDatabaseHas('produtos', [
             'id' => $produto->id,
@@ -229,13 +302,13 @@ class InventoryControllersTest extends TestCase
         $user = User::factory()->create();
         $ingrediente = Ingrediente::query()->create([
             'nome' => 'Açúcar',
-            'quantidade_estoque' => '1.000',
+            'quantidade_estoque' => '1000.000',
             'unidade_medida' => 'kg',
-            'estoque_minimo' => '0.200',
+            'estoque_minimo' => '200.000',
+            'unidade_embalagem' => 'g',
             'status_ingrediente' => 'ativo',
             'preco_embalagem' => '25.00',
             'tamanho_embalagem' => '5000',
-            'custo_unitario' => '0.0050',
         ]);
 
         $response = $this->actingAs($user)
@@ -251,7 +324,7 @@ class InventoryControllersTest extends TestCase
             ->assertSessionHasErrors('justificativa');
         $this->assertDatabaseHas('ingredientes', [
             'id' => $ingrediente->id,
-            'quantidade_estoque' => '1.000',
+            'quantidade_estoque' => '1000.000',
         ]);
         $this->assertDatabaseCount('ajustes_estoque', 0);
 
@@ -268,7 +341,7 @@ class InventoryControllersTest extends TestCase
             ->assertSessionHas('success');
         $this->assertDatabaseHas('ingredientes', [
             'id' => $ingrediente->id,
-            'quantidade_estoque' => '1.500',
+            'quantidade_estoque' => '1500.000',
         ]);
         $this->assertDatabaseHas('ajustes_estoque', [
             'id' => $ajuste->id,
@@ -276,6 +349,7 @@ class InventoryControllersTest extends TestCase
             'ajustavel_type' => Ingrediente::class,
             'ajustavel_id' => $ingrediente->id,
             'justificativa' => 'Recebimento de compra',
+            'quantidade' => '500.000',
         ]);
     }
 

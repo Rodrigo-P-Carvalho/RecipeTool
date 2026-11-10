@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ReceitaController extends Controller
@@ -75,7 +76,7 @@ class ReceitaController extends Controller
 
     public function edit(Receita $receita): View
     {
-        $receita->load('itens');
+        $receita->load('itens.ingrediente');
 
         return view('recipes.edit', [
             'receita' => $receita,
@@ -127,7 +128,7 @@ class ReceitaController extends Controller
      */
     private function validatedAttributes(Request $request, ?Receita $receita = null): array
     {
-        return $request->validate([
+        $attributes = $request->validate([
             'produto_id' => [
                 'required',
                 'integer',
@@ -144,5 +145,25 @@ class ReceitaController extends Controller
             ],
             'itens.*.quantidade_necessaria' => ['required', 'numeric', 'gt:0'],
         ]);
+
+        $ingredientes = Ingrediente::query()
+            ->whereIn('id', collect($attributes['itens'])->pluck('ingrediente_id'))
+            ->get()
+            ->keyBy('id');
+
+        foreach ($attributes['itens'] as $index => $item) {
+            $unidade = $ingredientes->get($item['ingrediente_id'])->unidade_medida;
+            $quantidadeBase = $unidade->converterParaBase((float) $item['quantidade_necessaria']);
+
+            if ($quantidadeBase <= 0) {
+                throw ValidationException::withMessages([
+                    "itens.{$index}.quantidade_necessaria" => 'A quantidade é menor que a menor fração armazenável.',
+                ]);
+            }
+
+            $attributes['itens'][$index]['quantidade_necessaria'] = number_format($quantidadeBase, 3, '.', '');
+        }
+
+        return $attributes;
     }
 }

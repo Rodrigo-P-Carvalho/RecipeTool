@@ -20,7 +20,7 @@
                             <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $ajuste->data_ajuste->format('d/m/Y H:i') }}</td>
                             <td class="px-5 py-4 text-sm font-medium text-slate-900">{{ $ajuste->ajustavel?->nome ?? 'Item removido' }}</td>
                             <td class="px-5 py-4 text-sm text-slate-600">{{ str_replace('_', ' ', ucfirst($ajuste->tipo_ajuste)) }}</td>
-                            <td class="px-5 py-4 text-sm text-slate-600">{{ number_format((float) $ajuste->quantidade, 3, ',', '.') }}</td>
+                            <td class="px-5 py-4 text-sm text-slate-600">{{ $ajuste->quantidade_formatada }}</td>
                             <td class="px-5 py-4 text-sm text-slate-600">{{ $ajuste->usuario->name }}</td>
                             <td class="px-5 py-4 text-right"><a href="{{ route('stock-adjustments.show', $ajuste) }}" class="font-medium text-blue-700 no-underline hover:text-blue-900">Detalhes</a></td>
                         </tr>

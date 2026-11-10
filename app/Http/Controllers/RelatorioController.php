@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UnidadeMedida;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -69,10 +70,11 @@ class RelatorioController extends Controller
             fputcsv($arquivo, ['Ingrediente', 'Unidade de medida', 'Quantidade consumida'], ';');
 
             foreach ($linhas as $linha) {
+                $unidade = UnidadeMedida::from($linha->unidade_medida);
                 fputcsv($arquivo, [
                     $this->safeCsvText($linha->nome),
-                    $this->safeCsvText($linha->unidade_medida),
-                    $linha->quantidade_consumida,
+                    $this->safeCsvText($unidade->value),
+                    $unidade->converterDaBase((float) $linha->quantidade_consumida),
                 ], ';');
             }
 

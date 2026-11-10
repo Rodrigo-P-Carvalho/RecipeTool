@@ -20,8 +20,8 @@
                     @foreach ($receita->itens as $item)
                         <tr>
                             <td class="px-5 py-4 text-sm font-medium text-slate-900">{{ $item->ingrediente->nome }}</td>
-                            <td class="px-5 py-4 text-sm text-slate-600">{{ number_format((float) $item->quantidade_necessaria, 3, ',', '.') }} {{ $item->ingrediente->unidade_medida }}</td>
-                            <td class="px-5 py-4 text-sm text-slate-600">R$ {{ number_format((float) $item->ingrediente->custo_unitario, 4, ',', '.') }}</td>
+                            <td class="px-5 py-4 text-sm text-slate-600">{{ $item->quantidade_necessaria_formatada }}</td>
+                            <td class="px-5 py-4 text-sm text-slate-600">{{ $item->ingrediente->custo_formatado }}</td>
                             <td class="px-5 py-4 text-right text-sm text-slate-600">R$ {{ number_format((float) $item->quantidade_necessaria * (float) $item->ingrediente->custo_unitario, 2, ',', '.') }}</td>
                         </tr>
                     @endforeach

@@ -20,10 +20,12 @@
                 <thead class="bg-slate-50"><tr><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ingrediente</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Quantidade por lote</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Total consumido</th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @foreach ($producao->receita->itens as $item)
+                        @php($unidade = $item->ingrediente->unidade_medida)
+                        @php($quantidadeTotal = $unidade->converterDaBase((float) $item->quantidade_necessaria * $producao->quantidade_lotes))
                         <tr>
                             <td class="px-5 py-4 text-sm font-medium text-slate-900">{{ $item->ingrediente->nome }}</td>
-                            <td class="px-5 py-4 text-sm text-slate-600">{{ number_format((float) $item->quantidade_necessaria, 3, ',', '.') }} {{ $item->ingrediente->unidade_medida }}</td>
-                            <td class="px-5 py-4 text-sm text-slate-600">{{ number_format((float) $item->quantidade_necessaria * $producao->quantidade_lotes, 3, ',', '.') }} {{ $item->ingrediente->unidade_medida }}</td>
+                            <td class="px-5 py-4 text-sm text-slate-600">{{ $item->quantidade_necessaria_formatada }}</td>
+                            <td class="px-5 py-4 text-sm text-slate-600">{{ number_format($quantidadeTotal, 3, ',', '.') }} {{ $unidade->value }}</td>
                         </tr>
                     @endforeach
                 </tbody>

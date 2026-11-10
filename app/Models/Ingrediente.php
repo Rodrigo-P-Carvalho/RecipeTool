@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\UnidadeMedida;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use LogicException;
 
 class Ingrediente extends ItemEstoque
 {
@@ -13,15 +16,17 @@ class Ingrediente extends ItemEstoque
         'quantidade_estoque',
         'unidade_medida',
         'estoque_minimo',
+        'unidade_embalagem',
         'status_ingrediente',
         'preco_embalagem',
         'tamanho_embalagem',
-        'custo_unitario',
     ];
 
     protected function casts(): array
     {
         return [
+            'unidade_embalagem' => UnidadeMedida::class,
+            'unidade_medida' => UnidadeMedida::class,
             'quantidade_estoque' => 'decimal:3',
             'estoque_minimo' => 'decimal:3',
             'preco_embalagem' => 'decimal:2',
@@ -30,8 +35,119 @@ class Ingrediente extends ItemEstoque
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $ingrediente): void {
+            $ingrediente->calcularCustoUnitario();
+        });
+    }
+
+    public function calcularCustoUnitario(): void
+    {
+        $unidadeEmbalagem = $this->unidade_embalagem;
+        $unidadeMedida = $this->unidade_medida;
+
+        if (! $unidadeEmbalagem instanceof UnidadeMedida || ! $unidadeMedida instanceof UnidadeMedida) {
+            throw new LogicException('As unidades de embalagem e de medida devem ser válidas.');
+        }
+
+        if ($unidadeEmbalagem->tipo() !== $unidadeMedida->tipo()) {
+            throw new LogicException('A unidade da embalagem deve ser compatível com a unidade de medida.');
+        }
+
+        $tamanhoBase = (float) $this->tamanho_embalagem * $unidadeEmbalagem->fatorParaBase();
+
+        if ($tamanhoBase <= 0) {
+            throw new LogicException('O tamanho da embalagem deve ser maior que zero.');
+        }
+
+        $this->custo_unitario = number_format(
+            round((float) $this->preco_embalagem / $tamanhoBase, 4),
+            4,
+            '.',
+            '',
+        );
+    }
+
+    protected function custoFormatado(): Attribute
+    {
+        return Attribute::make(
+            get: function (): string {
+                $unidade = $this->unidade_medida;
+                $custo = (float) $this->custo_unitario * $unidade->fatorParaBase();
+
+                return 'R$ '.self::formatarValor($custo, 4).' / '.$unidade->value;
+            },
+        );
+    }
+
+    protected function quantidadeEstoqueFormatada(): Attribute
+    {
+        return Attribute::make(
+            get: function (): string {
+                $unidade = $this->unidade_medida;
+
+                return self::formatarQuantidade($unidade->converterDaBase((float) $this->quantidade_estoque))
+                    .' '.$unidade->value;
+            },
+        );
+    }
+
+    protected function estoqueMinimoFormatado(): Attribute
+    {
+        return Attribute::make(
+            get: function (): string {
+                $unidade = $this->unidade_medida;
+
+                return self::formatarQuantidade($unidade->converterDaBase((float) $this->estoque_minimo))
+                    .' '.$unidade->value;
+            },
+        );
+    }
+
+    protected function estoqueMinimoNaUnidade(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => self::formatarDecimal(
+                $this->unidade_medida->converterDaBase((float) $this->estoque_minimo),
+            ),
+        );
+    }
+
+    protected function tamanhoEmbalagemFormatado(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => self::formatarQuantidade((float) $this->tamanho_embalagem)
+                .' '.$this->unidade_embalagem->value,
+        );
+    }
+
     public function itensReceita(): HasMany
     {
         return $this->hasMany(ItemReceita::class, 'ingrediente_id');
+    }
+
+    private static function formatarQuantidade(float $quantidade): string
+    {
+        return self::formatarDecimal($quantidade);
+    }
+
+    private static function formatarDecimal(float $quantidade): string
+    {
+        return rtrim(rtrim(number_format($quantidade, 3, ',', '.'), '0'), ',');
+    }
+
+    private static function formatarValor(float $valor, int $casasDecimais): string
+    {
+        $valorFormatado = number_format($valor, $casasDecimais, ',', '.');
+        $valorFormatado = rtrim(rtrim($valorFormatado, '0'), ',');
+
+        if (! str_contains($valorFormatado, ',')) {
+            $valorFormatado .= ',00';
+        } elseif (strlen(substr(strrchr($valorFormatado, ','), 1)) < 2) {
+            $valorFormatado .= '0';
+        }
+
+        return $valorFormatado;
     }
 }

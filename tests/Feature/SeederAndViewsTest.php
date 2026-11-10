@@ -166,10 +166,10 @@ class SeederAndViewsTest extends TestCase
                 'quantidade_estoque' => '10.000',
                 'unidade_medida' => 'g',
                 'estoque_minimo' => '1.000',
+                'unidade_embalagem' => 'g',
                 'status_ingrediente' => 'ativo',
                 'preco_embalagem' => '10.00',
                 'tamanho_embalagem' => '1000.000',
-                'custo_unitario' => '0.0100',
             ]);
         }
 

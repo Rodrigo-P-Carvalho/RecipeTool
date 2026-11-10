@@ -12,10 +12,10 @@
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Saldo atual</p><p class="mt-2 text-2xl font-semibold text-slate-950">{{ number_format((float) $ingrediente->quantidade_estoque, 3, ',', '.') }} <span class="text-base font-medium text-slate-500">{{ $ingrediente->unidade_medida }}</span></p></div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Estoque mínimo</p><p class="mt-2 text-2xl font-semibold text-slate-950">{{ number_format((float) $ingrediente->estoque_minimo, 3, ',', '.') }} <span class="text-base font-medium text-slate-500">{{ $ingrediente->unidade_medida }}</span></p></div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Custo unitário</p><p class="mt-2 text-2xl font-semibold text-slate-950">R$ {{ number_format((float) $ingrediente->custo_unitario, 4, ',', '.') }}</p></div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Preço da embalagem</p><p class="mt-2 text-2xl font-semibold text-slate-950">R$ {{ number_format((float) $ingrediente->preco_embalagem, 2, ',', '.') }}</p><p class="mt-1 text-sm text-slate-500">{{ number_format((float) $ingrediente->tamanho_embalagem, 3, ',', '.') }} {{ $ingrediente->unidade_medida }}</p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Saldo atual</p><p class="mt-2 text-2xl font-semibold text-slate-950">{{ $ingrediente->quantidade_estoque_formatada }}</p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Estoque mínimo</p><p class="mt-2 text-2xl font-semibold text-slate-950">{{ $ingrediente->estoque_minimo_formatado }}</p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Custo por unidade de exibição</p><p class="mt-2 text-2xl font-semibold text-slate-950">{{ $ingrediente->custo_formatado }}</p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Preço da embalagem</p><p class="mt-2 text-2xl font-semibold text-slate-950">R$ {{ number_format((float) $ingrediente->preco_embalagem, 2, ',', '.') }}</p><p class="mt-1 text-sm text-slate-500">{{ $ingrediente->tamanho_embalagem_formatado }}</p></div>
     </div>
 
     <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

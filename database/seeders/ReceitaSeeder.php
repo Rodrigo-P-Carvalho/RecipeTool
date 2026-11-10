@@ -16,7 +16,7 @@ class ReceitaSeeder extends Seeder
             [
                 'produto' => 'Bolo de Chocolate',
                 'descricao' => 'Ingredientes para produzir uma unidade de bolo de chocolate.',
-                'itens' => [
+                'itens_base' => [
                     'Farinha de Trigo' => '250.000',
                     'Açúcar Refinado' => '200.000',
                     'Ovos' => '3.000',
@@ -28,7 +28,7 @@ class ReceitaSeeder extends Seeder
             [
                 'produto' => 'Caixa de Brigadeiros (20 unidades)',
                 'descricao' => 'Ingredientes para produzir uma caixa com vinte brigadeiros.',
-                'itens' => [
+                'itens_base' => [
                     'Leite Condensado' => '395.000',
                     'Chocolate em Pó' => '60.000',
                     'Manteiga' => '20.000',
@@ -51,10 +51,10 @@ class ReceitaSeeder extends Seeder
 
             $receita->itens()->delete();
             $receita->itens()->createMany(
-                collect($dados['itens'])->map(
-                    fn (string $quantidade, string $nome): array => [
+                collect($dados['itens_base'])->map(
+                    fn (string $quantidadeBase, string $nome): array => [
                         'ingrediente_id' => $ingredientes->get($nome)->id,
-                        'quantidade_necessaria' => $quantidade,
+                        'quantidade_necessaria' => $quantidadeBase,
                     ],
                 )->values()->all(),
             );

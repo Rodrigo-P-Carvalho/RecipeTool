@@ -35,6 +35,24 @@ class SeederAndViewsTest extends TestCase
             'nome' => 'Leite Condensado',
             'custo_unitario' => '0.0164',
         ]);
+        $this->assertDatabaseHas('ingredientes', [
+            'nome' => 'Farinha de Trigo',
+            'quantidade_estoque' => '5000.000',
+            'unidade_embalagem' => 'kg',
+            'tamanho_embalagem' => '1.000',
+            'custo_unitario' => '0.0060',
+        ]);
+        $this->assertDatabaseHas('ingredientes', [
+            'nome' => 'Leite Integral',
+            'quantidade_estoque' => '5000.000',
+            'unidade_embalagem' => 'l',
+            'tamanho_embalagem' => '1.000',
+            'custo_unitario' => '0.0055',
+        ]);
+        $this->assertDatabaseHas('itens_receita', [
+            'ingrediente_id' => Ingrediente::query()->where('nome', 'Farinha de Trigo')->value('id'),
+            'quantidade_necessaria' => '250.000',
+        ]);
     }
 
     public function test_authenticated_users_can_open_all_requested_inventory_and_production_pages(): void

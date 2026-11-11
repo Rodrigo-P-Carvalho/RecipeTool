@@ -43,23 +43,25 @@ class IngredienteController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $unidadeMedida = $request->input('unidade_medida');
+
         $attributes = $request->validate([
             'nome' => ['required', 'string', 'max:255'],
-            'quantidade_inicial' => ['required', 'numeric', 'min:0'],
+            'quantidade_inicial' => $this->regrasQuantidade($unidadeMedida),
             'unidade_medida' => ['required', Rule::enum(UnidadeMedida::class)],
-            'estoque_minimo' => ['required', 'numeric', 'min:0'],
+            'estoque_minimo' => $this->regrasQuantidade($unidadeMedida),
             'unidade_embalagem' => ['required', Rule::enum(UnidadeMedida::class)],
             'status_ingrediente' => ['required', 'string', 'max:100'],
             'preco_embalagem' => ['required', 'numeric', 'min:0'],
-            'tamanho_embalagem' => ['required', 'numeric', 'gt:0'],
+            'tamanho_embalagem' => $this->regrasTamanhoEmbalagem($unidadeMedida),
         ]);
         $this->validarUnidadesCompativeis($attributes);
 
-        $unidadeMedida = UnidadeMedida::from($attributes['unidade_medida']);
-        $attributes['quantidade_estoque'] = $unidadeMedida->converterParaBase(
+        $unidade = UnidadeMedida::from($attributes['unidade_medida']);
+        $attributes['quantidade_estoque'] = $unidade->converterParaBase(
             (float) $attributes['quantidade_inicial'],
         );
-        $attributes['estoque_minimo'] = $unidadeMedida->converterParaBase(
+        $attributes['estoque_minimo'] = $unidade->converterParaBase(
             (float) $attributes['estoque_minimo'],
         );
         unset($attributes['quantidade_inicial']);
@@ -99,14 +101,16 @@ class IngredienteController extends Controller
 
     public function update(Request $request, Ingrediente $ingrediente): RedirectResponse
     {
+        $unidadeMedida = $request->input('unidade_medida');
+
         $attributes = $request->validate([
             'nome' => ['required', 'string', 'max:255'],
             'unidade_medida' => ['required', Rule::enum(UnidadeMedida::class)],
-            'estoque_minimo' => ['required', 'numeric', 'min:0'],
+            'estoque_minimo' => $this->regrasQuantidade($unidadeMedida),
             'unidade_embalagem' => ['required', Rule::enum(UnidadeMedida::class)],
             'status_ingrediente' => ['required', 'string', 'max:100'],
             'preco_embalagem' => ['required', 'numeric', 'min:0'],
-            'tamanho_embalagem' => ['required', 'numeric', 'gt:0'],
+            'tamanho_embalagem' => $this->regrasTamanhoEmbalagem($unidadeMedida),
         ]);
         $this->validarUnidadesCompativeis(
             $attributes,
@@ -139,7 +143,7 @@ class IngredienteController extends Controller
     {
         if ($ingrediente->itensReceita()->exists() || $ingrediente->ajustesEstoque()->exists()) {
             return back()->withErrors([
-                'ingrediente' => 'Não é possível excluir um ingrediente usado em uma receita ou no histórico de estoque.',
+                'ingrediente' => 'Este ingrediente está em uso em uma receita ou no histórico de estoque e não pode ser excluído. Recomendamos inativar o item.',
             ]);
         }
 
@@ -167,5 +171,25 @@ class IngredienteController extends Controller
                 'unidade_embalagem' => 'A unidade da embalagem deve ser compatível com a unidade de medida.',
             ]);
         }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function regrasQuantidade(mixed $unidadeMedida): array
+    {
+        return $unidadeMedida === UnidadeMedida::Un->value
+            ? ['required', 'integer', 'min:0']
+            : ['required', 'numeric', 'min:0'];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function regrasTamanhoEmbalagem(mixed $unidadeMedida): array
+    {
+        return $unidadeMedida === UnidadeMedida::Un->value
+            ? ['required', 'integer', 'gt:0']
+            : ['required', 'numeric', 'gt:0'];
     }
 }

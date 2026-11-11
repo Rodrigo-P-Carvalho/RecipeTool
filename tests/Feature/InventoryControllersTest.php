@@ -58,8 +58,84 @@ class InventoryControllersTest extends TestCase
         ]);
 
         expect($ingrediente->fresh()->quantidade_estoque_formatada)->toBe('3,5 kg')
-            ->and($ingrediente->fresh()->estoque_minimo_formatado)->toBe('0,5 kg')
+            ->and($ingrediente->fresh()->estoque_minimo_formatado)->toBe('500 g')
             ->and($ingrediente->fresh()->custo_formatado)->toBe('R$ 5,00 / kg');
+    }
+
+    public function test_unit_ingredients_reject_fractional_stock_and_packaging_quantities(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('ingredients.store'), [
+            'nome' => 'Ovos',
+            'quantidade_inicial' => '1.5',
+            'unidade_medida' => 'un',
+            'estoque_minimo' => '0.5',
+            'unidade_embalagem' => 'un',
+            'status_ingrediente' => 'ativo',
+            'preco_embalagem' => '12.00',
+            'tamanho_embalagem' => '6.5',
+        ]);
+
+        $response->assertSessionHasErrors([
+            'quantidade_inicial',
+            'estoque_minimo',
+            'tamanho_embalagem',
+        ]);
+        $this->assertDatabaseCount('ingredientes', 0);
+
+        $ingrediente = Ingrediente::query()->create([
+            'nome' => 'Ovos',
+            'quantidade_estoque' => '4.000',
+            'unidade_medida' => 'un',
+            'estoque_minimo' => '1.000',
+            'unidade_embalagem' => 'un',
+            'status_ingrediente' => 'ativo',
+            'preco_embalagem' => '12.00',
+            'tamanho_embalagem' => '6.000',
+        ]);
+
+        $this->get(route('ingredients.edit', $ingrediente))
+            ->assertOk()
+            ->assertSee('step="1"', false);
+    }
+
+    public function test_product_stock_is_integer_validated_and_displayed_without_trailing_decimals(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $this->get(route('products.create'))
+            ->assertOk()
+            ->assertSee('step="1"', false);
+
+        $this->post(route('products.store'), [
+            'nome' => 'Pão de mel',
+            'quantidade_estoque' => '1.5',
+            'descricao' => 'Pão de mel recheado',
+            'preco_venda' => '8.00',
+        ])->assertSessionHasErrors('quantidade_estoque');
+        $this->assertDatabaseCount('produtos', 0);
+
+        $produto = Produto::query()->create([
+            'nome' => 'Pão de mel',
+            'quantidade_estoque' => '6.000',
+            'descricao' => 'Pão de mel recheado',
+            'preco_venda' => '8.00',
+        ]);
+
+        $this->get(route('products'))
+            ->assertOk()
+            ->assertSee('6')
+            ->assertDontSee('6,000');
+        $this->get(route('products.show', $produto))
+            ->assertOk()
+            ->assertSee('6')
+            ->assertDontSee('6,000');
+        $this->get(route('stock.index'))
+            ->assertOk()
+            ->assertSee('6')
+            ->assertDontSee('6,000');
     }
 
     public function test_recipe_cost_is_calculated_from_ingredient_unit_cost_and_recalculated_when_package_price_changes(): void
@@ -122,6 +198,55 @@ class InventoryControllersTest extends TestCase
         $this->assertDatabaseHas('receitas', [
             'id' => $receita->id,
             'custo_total' => '2.50',
+        ]);
+    }
+
+    public function test_recipe_rejects_fractional_quantities_for_unit_ingredients(): void
+    {
+        $user = User::factory()->create();
+        $produto = Produto::query()->create([
+            'nome' => 'Omelete',
+            'quantidade_estoque' => '0.000',
+            'descricao' => 'Omelete simples',
+            'preco_venda' => '15.00',
+        ]);
+        $ingrediente = Ingrediente::query()->create([
+            'nome' => 'Ovos',
+            'quantidade_estoque' => '12.000',
+            'unidade_medida' => 'un',
+            'estoque_minimo' => '2.000',
+            'unidade_embalagem' => 'un',
+            'status_ingrediente' => 'ativo',
+            'preco_embalagem' => '12.00',
+            'tamanho_embalagem' => '6.000',
+        ]);
+        $this->actingAs($user);
+
+        $this->post(route('recipes.store'), [
+            'produto_id' => $produto->id,
+            'descricao' => 'Omelete com ovos',
+            'itens' => [
+                ['ingrediente_id' => $ingrediente->id, 'quantidade_necessaria' => '1.5'],
+            ],
+        ])->assertSessionHasErrors('itens.0.quantidade_necessaria');
+        $this->assertDatabaseCount('receitas', 0);
+        $this->assertDatabaseCount('itens_receita', 0);
+
+        $response = $this->post(route('recipes.store'), [
+            'produto_id' => $produto->id,
+            'descricao' => 'Omelete com ovos',
+            'itens' => [
+                ['ingrediente_id' => $ingrediente->id, 'quantidade_necessaria' => '2'],
+            ],
+        ]);
+
+        $receita = Receita::query()->sole();
+        $response->assertRedirect(route('recipes.show', $receita))
+            ->assertSessionHas('success');
+        $this->assertDatabaseHas('itens_receita', [
+            'receita_id' => $receita->id,
+            'ingrediente_id' => $ingrediente->id,
+            'quantidade_necessaria' => '2.000',
         ]);
     }
 
@@ -353,7 +478,55 @@ class InventoryControllersTest extends TestCase
         ]);
     }
 
-    public function test_confirmed_order_deducts_stock_and_cancellation_restores_it_once(): void
+    public function test_manual_stock_adjustments_reject_fractional_product_and_unit_ingredient_quantities(): void
+    {
+        $user = User::factory()->create();
+        $produto = Produto::query()->create([
+            'nome' => 'Brigadeiro',
+            'quantidade_estoque' => '6.000',
+            'descricao' => 'Brigadeiro tradicional',
+            'preco_venda' => '3.50',
+        ]);
+        $ingrediente = Ingrediente::query()->create([
+            'nome' => 'Ovos',
+            'quantidade_estoque' => '4.000',
+            'unidade_medida' => 'un',
+            'estoque_minimo' => '1.000',
+            'unidade_embalagem' => 'un',
+            'status_ingrediente' => 'ativo',
+            'preco_embalagem' => '12.00',
+            'tamanho_embalagem' => '6.000',
+        ]);
+        $this->actingAs($user);
+
+        $this->post(route('stock-adjustments.store'), [
+            'ajustavel_type' => Produto::class,
+            'ajustavel_id' => $produto->id,
+            'tipo_ajuste' => 'entrada',
+            'quantidade' => '0.5',
+            'justificativa' => 'Entrada de teste',
+        ])->assertSessionHasErrors('quantidade');
+
+        $this->post(route('stock-adjustments.store'), [
+            'ajustavel_type' => Ingrediente::class,
+            'ajustavel_id' => $ingrediente->id,
+            'tipo_ajuste' => 'entrada',
+            'quantidade' => '0.5',
+            'justificativa' => 'Entrada de teste',
+        ])->assertSessionHasErrors('quantidade');
+
+        $this->assertDatabaseCount('ajustes_estoque', 0);
+        $this->assertDatabaseHas('produtos', [
+            'id' => $produto->id,
+            'quantidade_estoque' => '6.000',
+        ]);
+        $this->assertDatabaseHas('ingredientes', [
+            'id' => $ingrediente->id,
+            'quantidade_estoque' => '4.000',
+        ]);
+    }
+
+    public function test_order_deducts_stock_and_cancellation_restores_it_once(): void
     {
         $user = User::factory()->create();
         $produto = Produto::query()->create([
@@ -375,7 +548,7 @@ class InventoryControllersTest extends TestCase
         $this->assertDatabaseHas('pedidos', [
             'id' => $pedido->id,
             'valor_total' => '25.00',
-            'status_pedido' => 'confirmado',
+            'status_pedido' => 'Aguardando Pagamento',
         ]);
         $this->assertDatabaseHas('produtos', [
             'id' => $produto->id,
@@ -388,7 +561,7 @@ class InventoryControllersTest extends TestCase
             'quantidade' => '2.000',
         ]);
 
-        $this->put(route('orders.update', $pedido), ['status_pedido' => 'cancelado'])
+        $this->post(route('orders.cancel', $pedido))
             ->assertRedirect(route('orders.show', $pedido))
             ->assertSessionHas('success');
         $this->assertDatabaseHas('produtos', [
@@ -396,7 +569,7 @@ class InventoryControllersTest extends TestCase
             'quantidade_estoque' => '5.000',
         ]);
 
-        $this->put(route('orders.update', $pedido), ['status_pedido' => 'cancelado'])
+        $this->post(route('orders.cancel', $pedido))
             ->assertRedirect(route('orders.show', $pedido));
         $this->assertDatabaseHas('produtos', [
             'id' => $produto->id,

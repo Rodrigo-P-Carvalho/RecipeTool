@@ -41,7 +41,7 @@
                         <tr class="hover:bg-slate-50">
                             <td class="whitespace-nowrap px-5 py-4 text-sm font-semibold text-slate-900">{{ $produto->nome }}</td>
                             <td class="px-5 py-4 text-sm text-slate-600">{{ $produto->descricao }}</td>
-                            <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ number_format((float) $produto->quantidade_estoque, 3, ',', '.') }}</td>
+                            <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $produto->quantidade_estoque_formatada }}</td>
                             <td class="whitespace-nowrap px-5 py-4 text-sm font-medium text-slate-900">R$ {{ number_format((float) $produto->preco_venda, 2, ',', '.') }}</td>
                             <td class="whitespace-nowrap px-5 py-4 text-right text-sm">
                                 <a href="{{ route('products.show', $produto) }}" class="font-medium text-blue-700 no-underline hover:text-blue-900">Ver</a>

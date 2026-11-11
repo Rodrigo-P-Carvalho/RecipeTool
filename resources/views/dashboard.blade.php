@@ -3,6 +3,35 @@
 @section('titulo_pagina', 'Painel inicial')
 
 @section('conteudo')
+    @if ($lotesComAlertas->isNotEmpty())
+        <section class="mb-6 rounded-2xl border border-red-300 bg-red-50 p-5 text-red-950" role="alert">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-semibold">Alertas de lotes vencidos / próximos do vencimento</h2>
+                    <p class="mt-1 text-sm">
+                        O sistema não descarta nem baixa lotes automaticamente por vencimento.
+                        Verifique os itens e, se necessário, registre o descarte em um ajuste manual.
+                    </p>
+                </div>
+                <a href="{{ route('stock-adjustments.create') }}" class="inline-flex rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-red-800">
+                    Registrar ajuste manual
+                </a>
+            </div>
+            <ul class="mt-4 divide-y divide-red-200">
+                @foreach ($lotesComAlertas as $lote)
+                    <li class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                        <span>
+                            <strong>{{ $lote->ingrediente->nome }}</strong>
+                            — lote {{ $lote->codigo_lote }}
+                            ({{ $lote->quantidade_atual_formatada }})
+                        </span>
+                        <span class="font-semibold">{{ $lote->status_validade }} · {{ $lote->data_validade->format('d/m/Y') }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
     <section class="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
         <div class="bg-gradient-to-r from-blue-700 to-indigo-700 px-6 py-8 text-white sm:px-8 sm:py-10">
             <p class="text-sm font-semibold uppercase tracking-widest text-blue-100">RecipeTool · Gestão de confeitaria</p>

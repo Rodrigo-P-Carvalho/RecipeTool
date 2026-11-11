@@ -84,24 +84,18 @@ class Ingrediente extends ItemEstoque
     protected function quantidadeEstoqueFormatada(): Attribute
     {
         return Attribute::make(
-            get: function (): string {
-                $unidade = $this->unidade_medida;
-
-                return self::formatarQuantidade($unidade->converterDaBase((float) $this->quantidade_estoque))
-                    .' '.$unidade->value;
-            },
+            get: fn (): string => $this->formatarQuantidadeComUnidadeDinamica(
+                (float) $this->quantidade_estoque,
+            ),
         );
     }
 
     protected function estoqueMinimoFormatado(): Attribute
     {
         return Attribute::make(
-            get: function (): string {
-                $unidade = $this->unidade_medida;
-
-                return self::formatarQuantidade($unidade->converterDaBase((float) $this->estoque_minimo))
-                    .' '.$unidade->value;
-            },
+            get: fn (): string => $this->formatarQuantidadeComUnidadeDinamica(
+                (float) $this->estoque_minimo,
+            ),
         );
     }
 
@@ -127,14 +121,33 @@ class Ingrediente extends ItemEstoque
         return $this->hasMany(ItemReceita::class, 'ingrediente_id');
     }
 
+    public function lotes(): HasMany
+    {
+        return $this->hasMany(LoteIngrediente::class, 'ingrediente_id');
+    }
+
     private static function formatarQuantidade(float $quantidade): string
     {
         return self::formatarDecimal($quantidade);
     }
 
+    private function formatarQuantidadeComUnidadeDinamica(float $quantidadeBase): string
+    {
+        $unidadeBase = UnidadeMedida::from($this->unidade_medida->unidadeBase());
+        $unidadeExibicao = match ($unidadeBase) {
+            UnidadeMedida::G => $quantidadeBase >= 1000 ? UnidadeMedida::Kg : UnidadeMedida::G,
+            UnidadeMedida::Ml => $quantidadeBase >= 1000 ? UnidadeMedida::L : UnidadeMedida::Ml,
+            UnidadeMedida::Un => UnidadeMedida::Un,
+            default => throw new LogicException('A unidade base do ingrediente não é válida.'),
+        };
+
+        return self::formatarQuantidade($unidadeExibicao->converterDaBase($quantidadeBase))
+            .' '.$unidadeExibicao->value;
+    }
+
     private static function formatarDecimal(float $quantidade): string
     {
-        return rtrim(rtrim(number_format($quantidade, 3, ',', '.'), '0'), ',');
+        return rtrim(rtrim(number_format($quantidade, 2, ',', '.'), '0'), ',');
     }
 
     private static function formatarValor(float $valor, int $casasDecimais): string

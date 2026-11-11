@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AjusteEstoqueController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\CompraController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstoqueController;
 use App\Http\Controllers\IngredienteController;
 use App\Http\Controllers\PedidoController;
@@ -48,7 +50,7 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::middleware('role:admin,gerente,funcionario')->group(function () {
-            Route::view('/dashboard', 'dashboard')->name('dashboard');
+            Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
             Route::resource('ingredients', IngredienteController::class)
                 ->parameters(['ingredients' => 'ingrediente'])
@@ -60,14 +62,20 @@ Route::middleware('auth')->group(function () {
                 ->parameters(['recipes' => 'receita'])
                 ->names(['index' => 'recipes']);
             Route::resource('orders', PedidoController::class)
-                ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
+                ->only(['index', 'create', 'store', 'show'])
                 ->parameters(['orders' => 'pedido']);
+            Route::post('/orders/{pedido}/cancel', [PedidoController::class, 'cancelar'])
+                ->name('orders.cancel');
+            Route::patch('/orders/{pedido}/status', [PedidoController::class, 'atualizarStatus'])
+                ->name('orders.status.update');
             Route::resource('productions', ProducaoController::class)
                 ->only(['index', 'create', 'store', 'show'])
                 ->parameters(['productions' => 'producao']);
             Route::resource('stock-adjustments', AjusteEstoqueController::class)
                 ->only(['index', 'create', 'store', 'show'])
                 ->parameters(['stock-adjustments' => 'ajusteEstoque']);
+            Route::resource('purchases', CompraController::class)
+                ->only(['index', 'create', 'store']);
 
             Route::get('/stock', [EstoqueController::class, 'index'])->name('stock.index');
             Route::get('/reports/production.csv', [RelatorioController::class, 'production'])

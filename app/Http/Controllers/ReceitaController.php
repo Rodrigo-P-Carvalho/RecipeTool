@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UnidadeMedida;
 use App\Models\Ingrediente;
 use App\Models\Produto;
 use App\Models\Receita;
@@ -143,17 +144,27 @@ class ReceitaController extends Controller
                 'distinct',
                 'exists:ingredientes,id',
             ],
-            'itens.*.quantidade_necessaria' => ['required', 'numeric', 'gt:0'],
         ]);
 
         $ingredientes = Ingrediente::query()
             ->whereIn('id', collect($attributes['itens'])->pluck('ingrediente_id'))
             ->get()
             ->keyBy('id');
+        $regrasQuantidade = [];
+
+        foreach ($attributes['itens'] as $indice => $item) {
+            $unidade = $ingredientes->get($item['ingrediente_id'])->unidade_medida;
+            $regrasQuantidade["itens.{$indice}.quantidade_necessaria"] = $unidade === UnidadeMedida::Un
+                ? ['required', 'integer', 'gt:0']
+                : ['required', 'numeric', 'gt:0'];
+        }
+
+        $quantidades = $request->validate($regrasQuantidade);
 
         foreach ($attributes['itens'] as $index => $item) {
             $unidade = $ingredientes->get($item['ingrediente_id'])->unidade_medida;
-            $quantidadeBase = $unidade->converterParaBase((float) $item['quantidade_necessaria']);
+            $quantidade = $quantidades['itens'][$index]['quantidade_necessaria'];
+            $quantidadeBase = $unidade->converterParaBase((float) $quantidade);
 
             if ($quantidadeBase <= 0) {
                 throw ValidationException::withMessages([

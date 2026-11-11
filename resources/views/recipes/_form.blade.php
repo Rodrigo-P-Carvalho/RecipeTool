@@ -94,8 +94,11 @@
             const atualizarUnidadeDaLinha = (linha) => {
                 const select = linha.querySelector('[data-ingredient-select]');
                 const unidade = select.selectedOptions[0]?.dataset.unidade ?? '';
+                const quantidade = linha.querySelector('input[name$="[quantidade_necessaria]"]');
 
                 linha.querySelector('[data-item-unit]').textContent = unidade;
+                quantidade.step = unidade === 'un' ? '1' : '0.000001';
+                quantidade.min = unidade === 'un' ? '1' : '0.000001';
             };
 
             lista.querySelectorAll('[data-item-row]').forEach((linha) => {

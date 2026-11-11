@@ -94,6 +94,14 @@
                         <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500" aria-hidden="true">I</span>
                         Estoque de ingredientes
                     </a>
+                    <a href="{{ route('purchases.index') }}" @class([
+                        'flex items-center gap-3 rounded-xl px-3 py-3 text-sm no-underline transition',
+                        'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('purchases*'),
+                        'font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-700' => ! request()->routeIs('purchases*'),
+                    ])>
+                        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500" aria-hidden="true">C</span>
+                        Compras e lotes
+                    </a>
                     <a href="{{ route('products') }}" @class([
                         'flex items-center gap-3 rounded-xl px-3 py-3 text-sm no-underline transition',
                         'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('products*'),

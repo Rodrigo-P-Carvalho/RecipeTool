@@ -53,6 +53,11 @@ class User extends Authenticatable
         return $this->hasMany(Pedido::class, 'usuario_id');
     }
 
+    public function compras(): HasMany
+    {
+        return $this->hasMany(Compra::class, 'usuario_id');
+    }
+
     public function ajustesEstoque(): HasMany
     {
         return $this->hasMany(AjusteEstoque::class, 'usuario_id');

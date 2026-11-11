@@ -6,6 +6,7 @@ use App\Models\AjusteEstoque;
 use App\Models\ItemEstoque;
 use App\Models\Producao;
 use App\Models\Receita;
+use App\Services\LoteIngredienteService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,7 +33,7 @@ class ProducaoController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, LoteIngredienteService $loteIngredienteService): RedirectResponse
     {
         $attributes = $request->validate([
             'receita_id' => ['required', 'integer', 'exists:receitas,id'],
@@ -40,7 +41,7 @@ class ProducaoController extends Controller
             'data_producao' => ['nullable', 'date'],
         ]);
 
-        $producao = DB::transaction(function () use ($attributes): Producao {
+        $producao = DB::transaction(function () use ($attributes, $loteIngredienteService): Producao {
             $receita = Receita::query()
                 ->with('itens')
                 ->lockForUpdate()
@@ -68,6 +69,7 @@ class ProducaoController extends Controller
                     ]);
                 }
 
+                $loteIngredienteService->consumir($ingrediente, $quantidadeNecessaria);
                 $ingrediente->decrement('quantidade_estoque', $quantidadeNecessaria);
 
                 $this->registrarMovimentacao(

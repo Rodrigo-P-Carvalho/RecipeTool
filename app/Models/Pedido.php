@@ -8,6 +8,31 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pedido extends Model
 {
+    public const STATUS_AGUARDANDO_PAGAMENTO = 'Aguardando Pagamento';
+
+    public const STATUS_PAGO = 'Pago';
+
+    public const STATUS_EM_SEPARACAO = 'Em Separação';
+
+    public const STATUS_ENVIADO = 'Enviado';
+
+    public const STATUS_ENTREGUE = 'Entregue';
+
+    public const STATUS_CANCELADO = 'Cancelado';
+
+    public const STATUS_TRANSICOES = [
+        self::STATUS_AGUARDANDO_PAGAMENTO,
+        self::STATUS_PAGO,
+        self::STATUS_EM_SEPARACAO,
+        self::STATUS_ENVIADO,
+        self::STATUS_ENTREGUE,
+    ];
+
+    public const STATUS_FILTRO = [
+        ...self::STATUS_TRANSICOES,
+        self::STATUS_CANCELADO,
+    ];
+
     protected $table = 'pedidos';
 
     protected $fillable = [
@@ -33,5 +58,12 @@ class Pedido extends Model
     public function itens(): HasMany
     {
         return $this->hasMany(ItemPedido::class, 'pedido_id');
+    }
+
+    public function historicoStatus(): HasMany
+    {
+        return $this->hasMany(HistoricoStatusPedido::class, 'pedido_id')
+            ->latest('created_at')
+            ->latest('id');
     }
 }

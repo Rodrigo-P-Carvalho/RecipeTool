@@ -23,6 +23,34 @@
         </div>
     @endif
 
+    @if ($lotesComAlertas->isNotEmpty())
+        <div class="mb-6 rounded-2xl border border-red-300 bg-red-50 p-5 text-red-950" role="alert">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-semibold">Lotes vencidos ou próximos do vencimento</h2>
+                    <p class="mt-1 text-sm">
+                        Não há baixa automática por vencimento. Revise os lotes e registre eventual descarte como ajuste manual.
+                    </p>
+                </div>
+                <a href="{{ route('stock-adjustments.create') }}" class="inline-flex rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-red-800">
+                    Ajustar estoque
+                </a>
+            </div>
+            <ul class="mt-4 divide-y divide-red-200">
+                @foreach ($lotesComAlertas as $lote)
+                    <li class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                        <span>
+                            <strong>{{ $lote->ingrediente->nome }}</strong>
+                            — lote {{ $lote->codigo_lote }}
+                            ({{ $lote->quantidade_atual_formatada }})
+                        </span>
+                        <span class="font-semibold">{{ $lote->status_validade }} · {{ $lote->data_validade->format('d/m/Y') }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <section aria-labelledby="ingredientes-titulo">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h2 id="ingredientes-titulo" class="text-xl font-semibold text-slate-900">Estoque de ingredientes</h2>
@@ -94,7 +122,7 @@
                         @forelse ($produtos as $produto)
                             <tr class="hover:bg-slate-50">
                                 <td class="px-5 py-4 text-sm font-semibold text-slate-900">{{ $produto->nome }}</td>
-                                <td class="px-5 py-4 text-sm text-slate-600">{{ number_format((float) $produto->quantidade_estoque, 3, ',', '.') }}</td>
+                                <td class="px-5 py-4 text-sm text-slate-600">{{ $produto->quantidade_estoque_formatada }}</td>
                                 <td class="px-5 py-4 text-sm text-slate-600">R$ {{ number_format((float) $produto->preco_venda, 2, ',', '.') }}</td>
                             </tr>
                         @empty

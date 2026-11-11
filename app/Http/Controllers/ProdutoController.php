@@ -39,7 +39,7 @@ class ProdutoController extends Controller
     {
         $attributes = $request->validate([
             'nome' => ['required', 'string', 'max:255'],
-            'quantidade_estoque' => ['required', 'numeric', 'min:0'],
+            'quantidade_estoque' => ['required', 'integer', 'min:0'],
             'descricao' => ['required', 'string', 'max:255'],
             'preco_venda' => ['required', 'numeric', 'min:0'],
         ]);

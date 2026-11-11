@@ -25,12 +25,12 @@
                     <option value="">Selecione um item</option>
                     <optgroup label="Ingredientes">
                         @foreach ($ingredientes as $ingrediente)
-                            <option value="{{ App\Models\Ingrediente::class }}|{{ $ingrediente->id }}" data-unidade="{{ $ingrediente->unidade_medida->value }}" @selected($ajustavelSelecionado === App\Models\Ingrediente::class.'|'.$ingrediente->id)>{{ $ingrediente->nome }} — {{ $ingrediente->quantidade_estoque_formatada }}</option>
+                            <option value="{{ App\Models\Ingrediente::class }}|{{ $ingrediente->id }}" data-unidade="{{ $ingrediente->unidade_medida->value }}" data-inteiro="{{ $ingrediente->unidade_medida->value === 'un' ? 'true' : 'false' }}" @selected($ajustavelSelecionado === App\Models\Ingrediente::class.'|'.$ingrediente->id)>{{ $ingrediente->nome }} — {{ $ingrediente->quantidade_estoque_formatada }}</option>
                         @endforeach
                     </optgroup>
                     <optgroup label="Produtos">
                         @foreach ($produtos as $produto)
-                            <option value="{{ App\Models\Produto::class }}|{{ $produto->id }}" data-unidade="" @selected($ajustavelSelecionado === App\Models\Produto::class.'|'.$produto->id)>{{ $produto->nome }} — estoque {{ number_format((float) $produto->quantidade_estoque, 3, ',', '.') }}</option>
+                            <option value="{{ App\Models\Produto::class }}|{{ $produto->id }}" data-unidade="" data-inteiro="true" @selected($ajustavelSelecionado === App\Models\Produto::class.'|'.$produto->id)>{{ $produto->nome }} — estoque {{ $produto->quantidade_estoque_formatada }}</option>
                         @endforeach
                     </optgroup>
                 </select>
@@ -86,8 +86,13 @@
         });
 
         document.getElementById('ajustavel_selecao').addEventListener('change', (evento) => {
-            document.getElementById('unidade-ajuste').textContent =
-                evento.target.selectedOptions[0]?.dataset.unidade ?? '';
+            const opcao = evento.target.selectedOptions[0];
+            const quantidade = document.getElementById('quantidade');
+            const unidadeInteira = opcao?.dataset.inteiro === 'true';
+
+            document.getElementById('unidade-ajuste').textContent = opcao?.dataset.unidade ?? '';
+            quantidade.step = unidadeInteira ? '1' : '0.001';
+            quantidade.min = unidadeInteira ? '1' : '0.001';
         });
 
         document.getElementById('ajustavel_selecao').dispatchEvent(new Event('change'));

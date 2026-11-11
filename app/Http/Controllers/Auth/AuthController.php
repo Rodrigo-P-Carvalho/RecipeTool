@@ -132,7 +132,11 @@ class AuthController extends Controller
     public function updateForcedPassword(Request $request): RedirectResponse
     {
         $attributes = $request->validate([
-            'password' => ['required', 'confirmed', PasswordRule::defaults()],
+            'password' => [
+                'required',
+                'confirmed',
+                PasswordRule::min(8)->letters()->numbers(),
+            ],
         ]);
 
         $request->user()->forceFill([

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ingrediente;
+use App\Models\LoteIngrediente;
 use App\Models\Produto;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -38,6 +39,13 @@ class EstoqueController extends Controller
             ->whereColumn('quantidade_estoque', '<=', 'estoque_minimo')
             ->orderBy('nome')
             ->get();
+        $lotesComAlertas = LoteIngrediente::query()
+            ->with('ingrediente')
+            ->withExpiryAlerts()
+            ->orderBy('data_validade')
+            ->orderBy('id')
+            ->limit(10)
+            ->get();
 
         return view('stock.index', compact(
             'ingredientes',
@@ -45,6 +53,7 @@ class EstoqueController extends Controller
             'ingredientesBaixoEstoque',
             'buscaIngrediente',
             'buscaProduto',
+            'lotesComAlertas',
         ));
     }
 }

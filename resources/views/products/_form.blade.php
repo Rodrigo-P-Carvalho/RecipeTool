@@ -12,7 +12,7 @@
     @unless (isset($produto))
         <div>
             <label for="quantidade_estoque" class="block text-sm font-medium text-slate-700">Saldo inicial</label>
-            <input id="quantidade_estoque" name="quantidade_estoque" type="number" min="0" step="0.001" value="{{ old('quantidade_estoque', '0') }}" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('quantidade_estoque') border-red-500 @enderror">
+            <input id="quantidade_estoque" name="quantidade_estoque" type="number" min="0" step="1" value="{{ old('quantidade_estoque', '0') }}" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('quantidade_estoque') border-red-500 @enderror">
             @error('quantidade_estoque')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
         </div>
     @endunless

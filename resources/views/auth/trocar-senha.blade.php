@@ -40,6 +40,14 @@
                         <span aria-hidden="true" data-requirement-status>○</span>
                         <span>Pelo menos 8 caracteres</span>
                     </li>
+                    <li class="flex items-center gap-2" data-password-requirement="letters">
+                        <span aria-hidden="true" data-requirement-status>○</span>
+                        <span>Pelo menos uma letra</span>
+                    </li>
+                    <li class="flex items-center gap-2" data-password-requirement="numbers">
+                        <span aria-hidden="true" data-requirement-status>○</span>
+                        <span>Pelo menos um número</span>
+                    </li>
                     <li class="flex items-center gap-2" data-password-requirement="confirmation">
                         <span aria-hidden="true" data-requirement-status>○</span>
                         <span>Preencha a confirmação da senha</span>

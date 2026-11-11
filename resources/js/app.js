@@ -35,6 +35,8 @@ if (passwordChangeForm) {
     const confirmation = passwordChangeForm.querySelector('#password_confirmation');
     const requirements = {
         length: () => Array.from(password.value).length >= 8,
+        letters: () => /\p{L}/u.test(password.value),
+        numbers: () => /\p{N}/u.test(password.value),
         confirmation: () => confirmation.value.length > 0,
         match: () => password.value.length > 0 && password.value === confirmation.value,
     };

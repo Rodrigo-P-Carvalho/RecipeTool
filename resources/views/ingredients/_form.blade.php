@@ -1,4 +1,7 @@
 <div class="grid gap-5 md:grid-cols-2">
+    @php
+        $unidadeInteira = old('unidade_medida', isset($ingrediente) ? $ingrediente->unidade_medida->value : 'g') === 'un';
+    @endphp
     <div>
         <label for="nome" class="block text-sm font-medium text-slate-700">Nome</label>
         <input id="nome" name="nome" value="{{ old('nome', $ingrediente->nome ?? '') }}" required maxlength="255" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('nome') border-red-500 @enderror">
@@ -25,18 +28,18 @@
     @unless (isset($ingrediente))
         <div>
             <label for="quantidade_inicial" class="block text-sm font-medium text-slate-700">Saldo inicial (<span data-unidade-medida-label>{{ old('unidade_medida', 'g') }}</span>)</label>
-            <input id="quantidade_inicial" name="quantidade_inicial" type="number" min="0" step="0.001" value="{{ old('quantidade_inicial', '0') }}" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('quantidade_inicial') border-red-500 @enderror">
+            <input id="quantidade_inicial" name="quantidade_inicial" type="number" min="0" step="{{ $unidadeInteira ? '1' : '0.001' }}" value="{{ old('quantidade_inicial', '0') }}" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('quantidade_inicial') border-red-500 @enderror">
             @error('quantidade_inicial')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
         </div>
     @endunless
     <div>
         <label for="estoque_minimo" class="block text-sm font-medium text-slate-700">Estoque mínimo (<span data-unidade-medida-label>{{ old('unidade_medida', isset($ingrediente) ? $ingrediente->unidade_medida->value : 'g') }}</span>)</label>
-        <input id="estoque_minimo" name="estoque_minimo" type="number" min="0" step="0.001" value="{{ old('estoque_minimo', isset($ingrediente) ? $ingrediente->estoque_minimo_na_unidade : '0') }}" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('estoque_minimo') border-red-500 @enderror">
+        <input id="estoque_minimo" name="estoque_minimo" type="number" min="0" step="{{ $unidadeInteira ? '1' : '0.001' }}" value="{{ old('estoque_minimo', isset($ingrediente) ? $ingrediente->estoque_minimo_na_unidade : '0') }}" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('estoque_minimo') border-red-500 @enderror">
         @error('estoque_minimo')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
     </div>
     <div>
         <label for="tamanho_embalagem" class="block text-sm font-medium text-slate-700">Tamanho da embalagem (<span data-unidade-embalagem-label>{{ old('unidade_embalagem', isset($ingrediente) ? $ingrediente->unidade_embalagem->value : old('unidade_medida', 'g')) }}</span>)</label>
-        <input id="tamanho_embalagem" name="tamanho_embalagem" type="number" min="0.001" step="0.001" value="{{ old('tamanho_embalagem', $ingrediente->tamanho_embalagem ?? '') }}" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('tamanho_embalagem') border-red-500 @enderror">
+        <input id="tamanho_embalagem" name="tamanho_embalagem" type="number" min="{{ $unidadeInteira ? '1' : '0.001' }}" step="{{ $unidadeInteira ? '1' : '0.001' }}" value="{{ old('tamanho_embalagem', $ingrediente->tamanho_embalagem ?? '') }}" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('tamanho_embalagem') border-red-500 @enderror">
         @error('tamanho_embalagem')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
     </div>
     <div>
@@ -88,6 +91,18 @@
                 });
                 document.querySelectorAll('[data-unidade-embalagem-label]').forEach((rotulo) => {
                     rotulo.textContent = unidadeEmbalagem.value;
+                });
+
+                const step = unidadeMedida.value === 'un' ? '1' : '0.001';
+                ['quantidade_inicial', 'estoque_minimo', 'tamanho_embalagem'].forEach((id) => {
+                    const campo = document.getElementById(id);
+
+                    if (campo) {
+                        campo.step = step;
+                        campo.min = id === 'tamanho_embalagem' && unidadeMedida.value === 'un'
+                            ? '1'
+                            : (id === 'tamanho_embalagem' && unidadeMedida.value !== 'un' ? '0.001' : '0');
+                    }
                 });
             };
 

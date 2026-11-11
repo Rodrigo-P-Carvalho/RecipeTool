@@ -6,6 +6,7 @@ use App\Models\AjusteEstoque;
 use App\Models\Ingrediente;
 use App\Models\ItemEstoque;
 use App\Models\Produto;
+use App\Services\LoteIngredienteService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,7 +35,7 @@ class AjusteEstoqueController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, LoteIngredienteService $loteIngredienteService): RedirectResponse
     {
         $attributes = $request->validate([
             'ajustavel_type' => [
@@ -49,18 +50,24 @@ class AjusteEstoqueController extends Controller
                     : 'produtos', 'id'),
             ],
             'tipo_ajuste' => ['required', Rule::in(['entrada', 'saida'])],
-            'quantidade' => ['required', 'numeric', 'gt:0'],
             'justificativa' => ['required', 'string', 'max:255'],
             'data_ajuste' => ['nullable', 'date'],
         ]);
 
-        $ajuste = DB::transaction(function () use ($attributes): AjusteEstoque {
+        $ajuste = DB::transaction(function () use ($attributes, $request, $loteIngredienteService): AjusteEstoque {
             $modelClass = $attributes['ajustavel_type'];
             /** @var ItemEstoque $ajustavel */
             $ajustavel = $modelClass::query()
                 ->lockForUpdate()
                 ->findOrFail($attributes['ajustavel_id']);
-            $quantidade = (float) $attributes['quantidade'];
+            $quantidadeInteira = $ajustavel instanceof Produto
+                || ($ajustavel instanceof Ingrediente && $ajustavel->unidade_medida->value === 'un');
+            $quantidadeRules = $quantidadeInteira
+                ? ['required', 'integer', 'min:1']
+                : ['required', 'numeric', 'gt:0'];
+            $quantidade = (float) $request->validate([
+                'quantidade' => $quantidadeRules,
+            ])['quantidade'];
 
             if ($ajustavel instanceof Ingrediente) {
                 $quantidade = $ajustavel->unidade_medida->converterParaBase($quantidade);
@@ -72,6 +79,13 @@ class AjusteEstoqueController extends Controller
                 throw ValidationException::withMessages([
                     'quantidade' => "O estoque de {$ajustavel->nome} é insuficiente para esse ajuste.",
                 ]);
+            }
+
+            if (
+                $attributes['tipo_ajuste'] === 'saida'
+                && $ajustavel instanceof Ingrediente
+            ) {
+                $loteIngredienteService->consumir($ajustavel, $quantidade);
             }
 
             $ajustavel->increment(

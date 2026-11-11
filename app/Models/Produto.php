@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -22,6 +23,15 @@ class Produto extends ItemEstoque
             'quantidade_estoque' => 'decimal:3',
             'preco_venda' => 'decimal:2',
         ];
+    }
+
+    protected function quantidadeEstoqueFormatada(): Attribute
+    {
+        return Attribute::make(get: function (): string {
+            $quantidade = number_format((float) $this->quantidade_estoque, 3, ',', '.');
+
+            return rtrim(rtrim($quantidade, '0'), ',');
+        });
     }
 
     public function receita(): HasOne

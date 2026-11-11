@@ -119,7 +119,7 @@ class SeederAndViewsTest extends TestCase
             ->assertSee(route('logout'));
     }
 
-    public function test_orders_page_shows_a_coming_soon_placeholder(): void
+    public function test_orders_page_shows_the_order_management_actions(): void
     {
         $this->seed();
         $user = User::query()->where('email', 'admin@recipetool.com')->sole();
@@ -128,10 +128,8 @@ class SeederAndViewsTest extends TestCase
             ->get(route('orders.index'))
             ->assertOk()
             ->assertSee('Pedidos e vendas')
-            ->assertSee('Estamos preparando esta área')
-            ->assertSee('Em breve')
-            ->assertSee(route('dashboard'))
-            ->assertSee(route('stock.index'));
+            ->assertSee('Acompanhe pedidos, valores e situação das vendas.')
+            ->assertSee(route('orders.create'));
     }
 
     public function test_stock_dashboard_highlights_ingredients_at_or_below_the_minimum(): void

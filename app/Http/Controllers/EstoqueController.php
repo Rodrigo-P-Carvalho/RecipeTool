@@ -26,6 +26,17 @@ class EstoqueController extends Controller
         );
 
         $ingredientes = Ingrediente::query()
+            ->withSum([
+                'lotes as quantidade_fora_validade' => fn ($query) => $query
+                    ->where('quantidade_atual', '>', 0)
+                    ->whereDate('data_validade', '<', today()->toDateString()),
+            ], 'quantidade_atual')
+            ->withSum([
+                'lotes as quantidade_vencendo' => fn ($query) => $query
+                    ->where('quantidade_atual', '>', 0)
+                    ->whereDate('data_validade', '>=', today()->toDateString())
+                    ->whereDate('data_validade', '<=', today()->addDays(7)->toDateString()),
+            ], 'quantidade_atual')
             ->when(
                 $buscaIngrediente !== '',
                 fn ($query) => $query->whereLike('nome', "%{$buscaIngrediente}%"),
@@ -42,7 +53,21 @@ class EstoqueController extends Controller
             ->paginate(30, ['*'], 'produtos_page')
             ->withQueryString();
         $ingredientesBaixoEstoque = Ingrediente::query()
-            ->whereColumn('quantidade_estoque', '<=', 'estoque_minimo')
+            ->withSum([
+                'lotes as quantidade_fora_validade' => fn ($query) => $query
+                    ->where('quantidade_atual', '>', 0)
+                    ->whereDate('data_validade', '<', today()->toDateString()),
+            ], 'quantidade_atual')
+            ->whereRaw(
+                'quantidade_estoque - COALESCE((
+                    SELECT SUM(lotes_ingredientes.quantidade_atual)
+                    FROM lotes_ingredientes
+                    WHERE lotes_ingredientes.ingrediente_id = ingredientes.id
+                        AND lotes_ingredientes.quantidade_atual > 0
+                        AND lotes_ingredientes.data_validade < ?
+                ), 0) <= estoque_minimo',
+                [today()->toDateString()],
+            )
             ->orderBy('nome')
             ->get();
         $lotesComAlertas = LoteIngrediente::query()

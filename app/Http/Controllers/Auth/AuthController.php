@@ -80,16 +80,25 @@ class AuthController extends Controller
     public function sendPasswordResetLink(Request $request): RedirectResponse
     {
         $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required', 'email', 'max:255'],
+        ], [
+            'email.required' => 'Informe seu endereço de e-mail.',
+            'email.email' => 'Informe um endereço de e-mail válido.',
+            'email.max' => 'O endereço de e-mail não pode ter mais de 255 caracteres.',
         ]);
 
         $status = Password::sendResetLink($request->only('email'));
 
-        if ($status !== Password::RESET_LINK_SENT) {
-            return back()->withErrors(['email' => __($status)])->onlyInput('email');
+        if (in_array($status, [Password::RESET_LINK_SENT, Password::INVALID_USER, Password::RESET_THROTTLED], true)) {
+            return back()->with(
+                'status',
+                'Se houver uma conta associada a esse e-mail, enviaremos um link para redefinir sua senha.',
+            );
         }
 
-        return back()->with('status', __($status));
+        return back()->withErrors([
+            'email' => 'Não foi possível solicitar a redefinição da senha. Tente novamente mais tarde.',
+        ])->onlyInput('email');
     }
 
     public function createPasswordReset(Request $request, string $token): View
@@ -104,8 +113,18 @@ class AuthController extends Controller
     {
         $attributes = $request->validate([
             'token' => ['required', 'string'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', PasswordRule::defaults()],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'confirmed', PasswordRule::min(8)->letters()->numbers()],
+        ], [
+            'token.required' => 'O link de redefinição está incompleto. Solicite um novo link.',
+            'email.required' => 'Informe seu endereço de e-mail.',
+            'email.email' => 'Informe um endereço de e-mail válido.',
+            'email.max' => 'O endereço de e-mail não pode ter mais de 255 caracteres.',
+            'password.required' => 'Informe uma nova senha.',
+            'password.confirmed' => 'A confirmação da senha não corresponde.',
+            'password.min' => 'A senha deve ter pelo menos 8 caracteres.',
+            'password.letters' => 'A senha deve conter pelo menos uma letra.',
+            'password.numbers' => 'A senha deve conter pelo menos um número.',
         ]);
 
         $status = Password::reset($attributes, function (User $user, string $password): void {
@@ -118,10 +137,13 @@ class AuthController extends Controller
         });
 
         if ($status !== Password::PASSWORD_RESET) {
-            return back()->withErrors(['email' => __($status)]);
+            return back()->withErrors([
+                'email' => 'O link de redefinição é inválido ou expirou. Solicite um novo link.',
+            ]);
         }
 
-        return redirect()->route('login')->with('status', __($status));
+        return redirect()->route('login')
+            ->with('status', 'Sua senha foi redefinida com sucesso. Você já pode entrar com a nova senha.');
     }
 
     public function createForcedPasswordChange(): View

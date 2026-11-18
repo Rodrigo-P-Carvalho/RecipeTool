@@ -28,6 +28,12 @@ class IngredienteController extends Controller
                     ->where('quantidade_atual', '>', 0)
                     ->whereDate('data_validade', '<', today()->toDateString()),
             ], 'quantidade_atual')
+            ->withSum([
+                'lotes as quantidade_vencendo' => fn ($query) => $query
+                    ->where('quantidade_atual', '>', 0)
+                    ->whereDate('data_validade', '>=', today()->toDateString())
+                    ->whereDate('data_validade', '<=', today()->addDays(7)->toDateString()),
+            ], 'quantidade_atual')
             ->when(
                 $search !== '',
                 fn ($query) => $query->whereLike('nome', "%{$search}%"),

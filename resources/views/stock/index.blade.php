@@ -17,7 +17,7 @@
             <p class="mt-1 text-sm">Os seguintes ingredientes precisam de reposição:</p>
             <ul class="mt-3 list-inside list-disc space-y-1 text-sm">
                 @foreach ($ingredientesBaixoEstoque as $ingrediente)
-                    <li>{{ $ingrediente->nome }} — saldo {{ $ingrediente->quantidade_estoque_formatada }} (mínimo {{ $ingrediente->estoque_minimo_formatado }})</li>
+                <li>{{ $ingrediente->nome }} — saldo utilizável {{ $ingrediente->saldo_utilizavel_formatado }} (saldo total {{ $ingrediente->quantidade_estoque_formatada }}, mínimo {{ $ingrediente->estoque_minimo_formatado }})</li>
                 @endforeach
             </ul>
         </div>
@@ -73,13 +73,18 @@
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50"><tr><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ingrediente</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Saldo</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Estoque mínimo</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Situação</th></tr></thead>
+                    <thead class="bg-slate-50"><tr><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ingrediente</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Saldo</th><th class="w-36 whitespace-normal px-5 py-3 text-left text-xs font-semibold uppercase leading-tight tracking-wide text-slate-500">Fora de validade</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Estoque mínimo</th><th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Situação</th></tr></thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($ingredientes as $ingrediente)
-                            @php($estoqueBaixo = (float) $ingrediente->quantidade_estoque <= (float) $ingrediente->estoque_minimo)
+                            @php($estoqueBaixo = (float) $ingrediente->quantidade_estoque - (float) ($ingrediente->quantidade_fora_validade ?? 0) <= (float) $ingrediente->estoque_minimo)
                             <tr @class(['bg-red-50' => $estoqueBaixo, 'hover:bg-slate-50' => ! $estoqueBaixo])>
                                 <td class="px-5 py-4 text-sm font-semibold text-slate-900">{{ $ingrediente->nome }}</td>
                                 <td class="px-5 py-4 text-sm text-slate-600">{{ $ingrediente->quantidade_estoque_formatada }}</td>
+                                <td @class([
+                                    'whitespace-nowrap px-5 py-4 text-sm',
+                                    'font-semibold text-red-700' => (float) $ingrediente->quantidade_fora_validade > 0,
+                                    'text-slate-600' => (float) $ingrediente->quantidade_fora_validade <= 0,
+                                ])>{{ $ingrediente->quantidade_fora_validade_formatada }}</td>
                                 <td class="px-5 py-4 text-sm text-slate-600">{{ $ingrediente->estoque_minimo_formatado }}</td>
                                 <td class="px-5 py-4">
                                     @if ($estoqueBaixo)
@@ -87,10 +92,16 @@
                                     @else
                                         <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">Disponível</span>
                                     @endif
+                                    @if ((float) $ingrediente->quantidade_fora_validade > 0)
+                                        <span class="ml-1 inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800">Vencido</span>
+                                    @endif
+                                    @if ((float) ($ingrediente->quantidade_vencendo ?? 0) > 0)
+                                        <span class="ml-1 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">Próximo do vencimento</span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="px-5 py-10 text-center text-sm text-slate-500">{{ $buscaIngrediente !== '' ? "Nenhum ingrediente encontrado para \"{$buscaIngrediente}\"." : 'Nenhum ingrediente cadastrado.' }}</td></tr>
+                            <tr><td colspan="5" class="px-5 py-10 text-center text-sm text-slate-500">{{ $buscaIngrediente !== '' ? "Nenhum ingrediente encontrado para \"{$buscaIngrediente}\"." : 'Nenhum ingrediente cadastrado.' }}</td></tr>
                         @endforelse
                     </tbody>
                 </table>

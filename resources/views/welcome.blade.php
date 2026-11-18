@@ -50,6 +50,10 @@
                             <p class="mt-3 text-sm leading-6 text-slate-500">Insira seus dados para continuar gerenciando suas receitas.</p>
                         </div>
 
+                        @if (session('status'))
+                            <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{{ session('status') }}</div>
+                        @endif
+
                         @if ($errors->any())
                             <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
                                 {{ $errors->first() }}
@@ -112,6 +116,9 @@
                                 Entrar
                             </button>
                         </form>
+                        <p class="mt-5 text-center text-sm">
+                            <a href="{{ route('password.request') }}" class="font-medium text-blue-700 underline decoration-blue-200 underline-offset-4 hover:text-blue-900">Esqueci minha senha</a>
+                        </p>
                     </div>
                 </section>
             </div>

@@ -476,7 +476,7 @@ class BetaSuiteTest extends TestCase
 
         $this->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Alertas de lotes vencidos')
+            ->assertSee('Alertas de validade')
             ->assertSee('LOTE-VENCIDO')
             ->assertSee('Vencido')
             ->assertSee('Registrar ajuste manual');
@@ -494,6 +494,68 @@ class BetaSuiteTest extends TestCase
             'id' => $lote->id,
             'quantidade_atual' => '1500.000',
         ]);
+    }
+
+    public function test_ingredient_list_shows_expired_and_near_expiration_statuses(): void
+    {
+        $user = User::factory()->create();
+        $ingrediente = $this->createIngredient(name: 'Ingrediente com alertas', stock: '1000.000');
+        $compra = Compra::query()->create([
+            'usuario_id' => $user->id,
+            'data_compra' => now(),
+            'valor_total' => '10.00',
+        ]);
+
+        LoteIngrediente::query()->create([
+            'compra_id' => $compra->id,
+            'ingrediente_id' => $ingrediente->id,
+            'quantidade_inicial' => '400.000',
+            'quantidade_atual' => '400.000',
+            'preco_custo' => '4.00',
+            'data_validade' => today()->subDay(),
+        ]);
+        LoteIngrediente::query()->create([
+            'compra_id' => $compra->id,
+            'ingrediente_id' => $ingrediente->id,
+            'quantidade_inicial' => '100.000',
+            'quantidade_atual' => '100.000',
+            'preco_custo' => '1.00',
+            'data_validade' => today()->addDays(7),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('ingredients'))
+            ->assertOk()
+            ->assertSee('Ingrediente com alertas')
+            ->assertSee('Vencido')
+            ->assertSee('Próximo do vencimento');
+    }
+
+    public function test_ingredient_list_warns_when_usable_stock_is_below_minimum_after_expired_stock_is_excluded(): void
+    {
+        $user = User::factory()->create();
+        $ingrediente = $this->createIngredient(name: 'Ingrediente com saldo utilizável baixo', stock: '500.000');
+        $ingrediente->update(['estoque_minimo' => '300.000']);
+        $compra = Compra::query()->create([
+            'usuario_id' => $user->id,
+            'data_compra' => now(),
+            'valor_total' => '3.00',
+        ]);
+
+        LoteIngrediente::query()->create([
+            'compra_id' => $compra->id,
+            'ingrediente_id' => $ingrediente->id,
+            'quantidade_inicial' => '300.000',
+            'quantidade_atual' => '300.000',
+            'preco_custo' => '2.00',
+            'data_validade' => today()->subDay(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('ingredients'))
+            ->assertOk()
+            ->assertSee('Ingrediente com saldo utilizável baixo')
+            ->assertSee('Estoque baixo');
     }
 
     public function test_purchase_rejects_a_future_purchase_date_but_does_not_restrict_expiration_dates(): void
@@ -660,7 +722,7 @@ class BetaSuiteTest extends TestCase
 
         $response->assertRedirect(route('productions.create'))
             ->assertSessionHasErrors([
-                'receita_id' => "Estoque dentro da validade insuficiente para o ingrediente {$ingrediente->nome}.",
+                'receita_id' => 'A produção não pode ser registrada por falta de estoque válido. Confira a disponibilidade dos ingredientes na lista.',
             ]);
         $this->assertDatabaseCount('producoes', 0);
         $this->assertDatabaseCount('ajustes_estoque', 1);

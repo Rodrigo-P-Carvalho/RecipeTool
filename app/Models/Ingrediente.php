@@ -99,6 +99,15 @@ class Ingrediente extends ItemEstoque
         );
     }
 
+    protected function saldoUtilizavelFormatado(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => $this->formatarQuantidadeComUnidadeDinamica(
+                (float) $this->quantidade_estoque - (float) ($this->quantidade_fora_validade ?? 0),
+            ),
+        );
+    }
+
     protected function estoqueMinimoFormatado(): Attribute
     {
         return Attribute::make(

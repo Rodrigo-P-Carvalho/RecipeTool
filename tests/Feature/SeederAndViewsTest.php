@@ -2,12 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Models\Compra;
 use App\Models\Ingrediente;
+use App\Models\LoteIngrediente;
+use App\Models\Pedido;
 use App\Models\Producao;
 use App\Models\Produto;
 use App\Models\Receita;
 use App\Models\User;
+use Database\Seeders\DemonstracaoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -52,6 +58,87 @@ class SeederAndViewsTest extends TestCase
         $this->assertDatabaseHas('itens_receita', [
             'ingrediente_id' => Ingrediente::query()->where('nome', 'Farinha de Trigo')->value('id'),
             'quantidade_necessaria' => '250.000',
+        ]);
+    }
+
+    public function test_dashboard_displays_the_update_time_in_brasilia_timezone(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-18 02:14:00', 'UTC'));
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Atualizado em 17/11/2026 23:14');
+    }
+
+    public function test_demo_seeder_populates_inventory_activity_and_is_safe_to_run_twice(): void
+    {
+        $this->seed(DemonstracaoSeeder::class);
+
+        $this->assertDatabaseCount('compras', 5);
+        $this->assertDatabaseCount('lotes_ingredientes', 86);
+        $this->assertDatabaseCount('producoes', 24);
+        $this->assertGreaterThanOrEqual(20, Pedido::query()->count());
+        $this->assertGreaterThan(150, DB::table('ajustes_estoque')->count());
+        $this->assertDatabaseHas('lotes_ingredientes', [
+            'codigo_lote' => 'DEMO-CREME-VENCIDO',
+            'quantidade_atual' => '400.000',
+        ]);
+        $this->assertDatabaseHas('lotes_ingredientes', [
+            'codigo_lote' => 'DEMO-LEITE-VENCE-EM-5-DIAS',
+            'quantidade_atual' => '7550.000',
+        ]);
+
+        $farinha = Ingrediente::query()->where('nome', 'Farinha de Trigo')->firstOrFail();
+        $this->assertEquals(
+            (float) $farinha->lotes()->sum('quantidade_atual'),
+            (float) $farinha->quantidade_estoque,
+        );
+        $estoqueFarinha = $farinha->quantidade_estoque;
+        $quantidadePedidos = Pedido::query()->count();
+
+        $this->seed();
+
+        $this->assertDatabaseCount('compras', 5);
+        $this->assertDatabaseCount('lotes_ingredientes', 86);
+        $this->assertDatabaseCount('producoes', 24);
+        $this->assertSame($quantidadePedidos, Pedido::query()->count());
+        $this->assertSame(
+            $estoqueFarinha,
+            Ingrediente::query()->where('nome', 'Farinha de Trigo')->value('quantidade_estoque'),
+        );
+
+        $this->actingAs(User::query()->where('role', 'admin')->firstOrFail())
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Painel executivo')
+            ->assertSee('Pasta Americana')
+            ->assertSee('DEMO-CREME-VENCIDO')
+            ->assertSee('Volume de produção')
+            ->assertSee('Itens que precisam de atenção');
+    }
+
+    public function test_demo_seeder_does_not_overwrite_a_database_with_existing_operations(): void
+    {
+        $this->seed();
+        $user = User::query()->where('role', 'admin')->firstOrFail();
+        $ingrediente = Ingrediente::query()->firstOrFail();
+        $ingrediente->update(['quantidade_estoque' => '1234.000']);
+        Producao::query()->create([
+            'usuario_id' => $user->id,
+            'receita_id' => Receita::query()->firstOrFail()->id,
+            'quantidade_lotes' => 1,
+            'data_producao' => now(),
+        ]);
+
+        $this->seed(DemonstracaoSeeder::class);
+
+        $this->assertDatabaseCount('ingredientes', 8);
+        $this->assertDatabaseCount('compras', 0);
+        $this->assertDatabaseCount('lotes_ingredientes', 0);
+        $this->assertDatabaseHas('ingredientes', [
+            'id' => $ingrediente->id,
+            'quantidade_estoque' => '1234.000',
         ]);
     }
 
@@ -117,6 +204,74 @@ class SeederAndViewsTest extends TestCase
             ->assertSee(route('stock-adjustments.index'))
             ->assertSee(route('users'))
             ->assertSee(route('logout'));
+    }
+
+    public function test_executive_dashboard_aggregates_inventory_profitability_production_and_alerts(): void
+    {
+        $this->seed();
+        $user = User::query()->where('email', 'admin@recipetool.com')->sole();
+        $ingredientes = Ingrediente::query()->get();
+
+        foreach ($ingredientes as $ingrediente) {
+            $ingrediente->update([
+                'quantidade_estoque' => '0.000',
+                'status_ingrediente' => 'inativo',
+            ]);
+        }
+
+        $ingrediente = Ingrediente::query()->where('nome', 'Farinha de Trigo')->firstOrFail();
+        $ingrediente->update([
+            'quantidade_estoque' => '500.000',
+            'status_ingrediente' => 'ativo',
+        ]);
+        $receitas = Receita::query()->with('produto')->get();
+
+        foreach ($receitas as $receita) {
+            $receita->update([
+                'custo_total' => number_format((float) $receita->produto->preco_venda / 2, 2, '.', ''),
+            ]);
+        }
+
+        $receita = $receitas->firstOrFail();
+        Producao::query()->create([
+            'usuario_id' => $user->id,
+            'receita_id' => $receita->id,
+            'quantidade_lotes' => 2,
+            'data_producao' => now(),
+        ]);
+        $compra = Compra::query()->create([
+            'usuario_id' => $user->id,
+            'data_compra' => now(),
+            'valor_total' => '1.00',
+        ]);
+        LoteIngrediente::query()->create([
+            'compra_id' => $compra->id,
+            'ingrediente_id' => $ingrediente->id,
+            'codigo_lote' => 'DASH-EXPIRING',
+            'quantidade_inicial' => '100.000',
+            'quantidade_atual' => '100.000',
+            'preco_custo' => '1.00',
+            'data_validade' => today()->addDays(3),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk()
+            ->assertSee('Custo em estoque')
+            ->assertSee('R$ 3,00')
+            ->assertSee('Margem média estimada')
+            ->assertSee('50,0%')
+            ->assertSee('Alertas de validade')
+            ->assertSee('Estoque baixo')
+            ->assertSee('Custo estimado vs. preço de venda')
+            ->assertSee('Bolo de Chocolate')
+            ->assertSee('Composição do custo em estoque')
+            ->assertSee('por ingrediente')
+            ->assertSee('Volume de produção')
+            ->assertSee('últimos 12 meses')
+            ->assertSee('Itens que precisam de atenção')
+            ->assertSee('DASH-EXPIRING')
+            ->assertSee('Estoque baixo');
     }
 
     public function test_orders_page_shows_the_order_management_actions(): void
@@ -288,6 +443,16 @@ class SeederAndViewsTest extends TestCase
         $user = User::query()->where('email', 'admin@recipetool.com')->sole();
 
         foreach (range(1, 31) as $numero) {
+            Ingrediente::query()->create([
+                'nome' => "Ingrediente adicional {$numero}",
+                'quantidade_estoque' => '10.000',
+                'unidade_medida' => 'g',
+                'estoque_minimo' => '1.000',
+                'unidade_embalagem' => 'g',
+                'status_ingrediente' => 'ativo',
+                'preco_embalagem' => '10.00',
+                'tamanho_embalagem' => '1000.000',
+            ]);
             Produto::query()->create([
                 'nome' => "Produto adicional {$numero}",
                 'quantidade_estoque' => '0.000',
@@ -298,18 +463,26 @@ class SeederAndViewsTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('stock.index', [
-                'busca_ingrediente' => 'farinha',
+                'busca_ingrediente' => 'Ingrediente adicional',
                 'busca_produto' => 'produto adicional',
             ]))
             ->assertOk()
-            ->assertSee('Farinha de Trigo')
+            ->assertSee('Ingrediente adicional 1')
             ->assertDontSee('Leite Condensado')
-            ->assertSee('value="farinha"', false)
+            ->assertSee('value="Ingrediente adicional"', false)
+            ->assertViewHas('ingredientes', function ($ingredientes): bool {
+                parse_str(parse_url($ingredientes->nextPageUrl(), PHP_URL_QUERY), $query);
+
+                return $ingredientes->total() === 31
+                    && ($query['busca_ingrediente'] ?? null) === 'Ingrediente adicional'
+                    && ($query['busca_produto'] ?? null) === 'produto adicional'
+                    && ($query['ingredientes_page'] ?? null) === '2';
+            })
             ->assertViewHas('produtos', function ($produtos): bool {
                 parse_str(parse_url($produtos->nextPageUrl(), PHP_URL_QUERY), $query);
 
                 return $produtos->total() === 31
-                    && ($query['busca_ingrediente'] ?? null) === 'farinha'
+                    && ($query['busca_ingrediente'] ?? null) === 'Ingrediente adicional'
                     && ($query['busca_produto'] ?? null) === 'produto adicional'
                     && ($query['produtos_page'] ?? null) === '2';
             });
@@ -383,7 +556,8 @@ class SeederAndViewsTest extends TestCase
         $this->get(route('productions.create'))
             ->assertOk()
             ->assertSee('bg-red-50')
-            ->assertSee("Estoque insuficiente para o ingrediente {$ingrediente->nome}.");
+            ->assertSee('A produção não pode ser registrada por falta de estoque válido. Confira a disponibilidade dos ingredientes na lista.')
+            ->assertDontSee("Estoque insuficiente para o ingrediente {$ingrediente->nome}.");
 
         $itensCompra = $receita->itens()
             ->with('ingrediente')

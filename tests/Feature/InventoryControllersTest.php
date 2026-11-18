@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\AjusteEstoque;
+use App\Models\Compra;
 use App\Models\Ingrediente;
 use App\Models\ItemReceita;
+use App\Models\LoteIngrediente;
 use App\Models\Pedido;
 use App\Models\Producao;
 use App\Models\Produto;
@@ -136,6 +138,150 @@ class InventoryControllersTest extends TestCase
             ->assertOk()
             ->assertSee('6')
             ->assertDontSee('6,000');
+    }
+
+    public function test_stock_overview_shows_expiry_alerts_and_uses_usable_stock_for_replenishment(): void
+    {
+        $user = User::factory()->create();
+        $ingrediente = Ingrediente::query()->create([
+            'nome' => 'Ingrediente com alertas',
+            'quantidade_estoque' => '500.000',
+            'unidade_medida' => 'g',
+            'estoque_minimo' => '300.000',
+            'unidade_embalagem' => 'g',
+            'status_ingrediente' => 'ativo',
+            'preco_embalagem' => '10.00',
+            'tamanho_embalagem' => '1000.000',
+        ]);
+        $compra = Compra::query()->create([
+            'usuario_id' => $user->id,
+            'data_compra' => now(),
+            'valor_total' => '4.00',
+        ]);
+        LoteIngrediente::query()->create([
+            'compra_id' => $compra->id,
+            'ingrediente_id' => $ingrediente->id,
+            'quantidade_inicial' => '300.000',
+            'quantidade_atual' => '300.000',
+            'preco_custo' => '3.00',
+            'data_validade' => today()->subDay(),
+        ]);
+        LoteIngrediente::query()->create([
+            'compra_id' => $compra->id,
+            'ingrediente_id' => $ingrediente->id,
+            'quantidade_inicial' => '100.000',
+            'quantidade_atual' => '100.000',
+            'preco_custo' => '1.00',
+            'data_validade' => today()->addDays(7),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('stock.index'))
+            ->assertOk()
+            ->assertSee('saldo utilizável 200 g')
+            ->assertSee('Fora de validade')
+            ->assertSee('300 g')
+            ->assertSee('Repor')
+            ->assertSee('Vencido')
+            ->assertSee('Próximo do vencimento');
+    }
+
+    public function test_production_form_lists_recipe_ingredients_with_only_unexpired_available_stock(): void
+    {
+        $user = User::factory()->create();
+        $farinha = Ingrediente::query()->create([
+            'nome' => 'Farinha',
+            'quantidade_estoque' => '5000.000',
+            'unidade_medida' => 'g',
+            'estoque_minimo' => '100.000',
+            'unidade_embalagem' => 'g',
+            'status_ingrediente' => 'ativo',
+            'preco_embalagem' => '5.00',
+            'tamanho_embalagem' => '1000.000',
+        ]);
+        $leite = Ingrediente::query()->create([
+            'nome' => 'Leite',
+            'quantidade_estoque' => '300.000',
+            'unidade_medida' => 'ml',
+            'estoque_minimo' => '100.000',
+            'unidade_embalagem' => 'ml',
+            'status_ingrediente' => 'ativo',
+            'preco_embalagem' => '3.00',
+            'tamanho_embalagem' => '1000.000',
+        ]);
+        $produto = Produto::query()->create([
+            'nome' => 'Bolo de teste',
+            'quantidade_estoque' => '0.000',
+            'descricao' => 'Produto de teste.',
+            'preco_venda' => '10.00',
+        ]);
+        $receita = Receita::query()->create([
+            'produto_id' => $produto->id,
+            'descricao' => 'Receita de teste.',
+            'custo_total' => '0.00',
+        ]);
+        $receita->itens()->createMany([
+            ['ingrediente_id' => $farinha->id, 'quantidade_necessaria' => '1500.000'],
+            ['ingrediente_id' => $leite->id, 'quantidade_necessaria' => '500.000'],
+        ]);
+        $compra = Compra::query()->create([
+            'usuario_id' => $user->id,
+            'data_compra' => now(),
+            'valor_total' => '12.00',
+        ]);
+        LoteIngrediente::query()->create([
+            'compra_id' => $compra->id,
+            'ingrediente_id' => $farinha->id,
+            'quantidade_inicial' => '2000.000',
+            'quantidade_atual' => '2000.000',
+            'preco_custo' => '8.00',
+            'data_validade' => today()->addDays(10),
+        ]);
+        LoteIngrediente::query()->create([
+            'compra_id' => $compra->id,
+            'ingrediente_id' => $farinha->id,
+            'quantidade_inicial' => '3000.000',
+            'quantidade_atual' => '3000.000',
+            'preco_custo' => '3.00',
+            'data_validade' => today()->subDay(),
+        ]);
+        LoteIngrediente::query()->create([
+            'compra_id' => $compra->id,
+            'ingrediente_id' => $leite->id,
+            'quantidade_inicial' => '400.000',
+            'quantidade_atual' => '400.000',
+            'preco_custo' => '1.00',
+            'data_validade' => today()->addDays(20),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('productions.create'))
+            ->assertOk()
+            ->assertSee('data-production-form', false)
+            ->assertSee('Disponibilidade dos ingredientes')
+            ->assertSee('dados-disponibilidade-producao', false)
+            ->assertSee('min="1"', false)
+            ->assertSee('Informe um número inteiro maior que zero.')
+            ->assertSeeInOrder([
+                'A gravação é transacional',
+                'Receita / produto',
+            ], false)
+            ->assertViewHas('disponibilidadeReceitas', function (array $disponibilidade) use ($receita): bool {
+                $itens = collect($disponibilidade[$receita->id])->keyBy('nome');
+
+                return $itens->count() === 2
+                    && $itens['Farinha']['quantidade_por_lote'] === 1500.0
+                    && $itens['Farinha']['quantidade_disponivel'] === 2000.0
+                    && $itens['Leite']['quantidade_por_lote'] === 500.0
+                    && $itens['Leite']['quantidade_disponivel'] === 300.0;
+            });
+
+        $this->post(route('productions.store'), [
+            'receita_id' => $receita->id,
+            'quantidade_lotes' => -1,
+        ])->assertSessionHasErrors('quantidade_lotes')
+            ->assertRedirect(route('productions.create'));
+        $this->assertDatabaseCount('producoes', 0);
     }
 
     public function test_recipe_cost_is_calculated_from_ingredient_unit_cost_and_recalculated_when_package_price_changes(): void

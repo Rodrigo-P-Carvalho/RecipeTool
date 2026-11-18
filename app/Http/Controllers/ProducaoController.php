@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AjusteEstoque;
 use App\Models\ItemEstoque;
+use App\Models\LoteIngrediente;
 use App\Models\Producao;
 use App\Models\Receita;
 use App\Services\LoteIngredienteService;
@@ -28,8 +29,50 @@ class ProducaoController extends Controller
 
     public function create(): View
     {
+        $receitas = Receita::query()
+            ->with(['produto', 'itens.ingrediente'])
+            ->orderBy('id')
+            ->get();
+        $ingredienteIds = $receitas
+            ->flatMap(fn (Receita $receita) => $receita->itens->pluck('ingrediente_id'))
+            ->unique()
+            ->values();
+        $quantidadesDisponiveis = $ingredienteIds->isEmpty()
+            ? collect()
+            : LoteIngrediente::query()
+                ->whereIn('ingrediente_id', $ingredienteIds)
+                ->where('quantidade_atual', '>', 0)
+                ->whereDate('data_validade', '>=', today()->toDateString())
+                ->selectRaw('ingrediente_id, SUM(quantidade_atual) as quantidade_disponivel')
+                ->groupBy('ingrediente_id')
+                ->pluck('quantidade_disponivel', 'ingrediente_id');
+        $disponibilidadeReceitas = $receitas->mapWithKeys(
+            fn (Receita $receita): array => [
+                $receita->id => $receita->itens
+                    ->groupBy('ingrediente_id')
+                    ->map(function ($itens) use ($quantidadesDisponiveis): array {
+                        $ingrediente = $itens->first()->ingrediente;
+
+                        return [
+                            'nome' => $ingrediente->nome,
+                            'unidade_base' => $ingrediente->unidade_medida->unidadeBase(),
+                            'quantidade_por_lote' => (float) $itens->sum(
+                                fn ($item): float => (float) $item->quantidade_necessaria,
+                            ),
+                            'quantidade_disponivel' => min(
+                                (float) $ingrediente->quantidade_estoque,
+                                (float) $quantidadesDisponiveis->get($ingrediente->id, 0),
+                            ),
+                        ];
+                    })
+                    ->values()
+                    ->all(),
+            ],
+        )->all();
+
         return view('productions.create', [
-            'receitas' => Receita::query()->with('produto')->orderBy('id')->get(),
+            'receitas' => $receitas,
+            'disponibilidadeReceitas' => $disponibilidadeReceitas,
         ]);
     }
 
@@ -67,7 +110,7 @@ class ProducaoController extends Controller
 
                 if ((float) $ingrediente->quantidade_estoque < $quantidadeNecessaria) {
                     throw ValidationException::withMessages([
-                        'receita_id' => "Estoque insuficiente para o ingrediente {$ingrediente->nome}.",
+                        'receita_id' => 'A produção não pode ser registrada por falta de estoque válido. Confira a disponibilidade dos ingredientes na lista.',
                     ]);
                 }
 
@@ -78,7 +121,7 @@ class ProducaoController extends Controller
 
                 if ($quantidadeDisponivel < $quantidadeNecessaria) {
                     throw ValidationException::withMessages([
-                        'receita_id' => "Estoque dentro da validade insuficiente para o ingrediente {$ingrediente->nome}.",
+                        'receita_id' => 'A produção não pode ser registrada por falta de estoque válido. Confira a disponibilidade dos ingredientes na lista.',
                     ]);
                 }
 

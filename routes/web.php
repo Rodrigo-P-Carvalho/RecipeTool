@@ -90,10 +90,18 @@ Route::middleware('auth')->group(function () {
             Route::post('/stock/search', [EstoqueController::class, 'search'])
                 ->name('stock.search');
             Route::get('/stock', [EstoqueController::class, 'index'])->name('stock.index');
+            Route::get('/reports', [RelatorioController::class, 'index'])
+                ->name('reports.index');
             Route::get('/reports/production.csv', [RelatorioController::class, 'production'])
                 ->name('reports.production');
             Route::get('/reports/ingredient-consumption.csv', [RelatorioController::class, 'ingredientConsumption'])
                 ->name('reports.ingredient-consumption');
+            Route::get('/reports/executive.pdf', [RelatorioController::class, 'executivePdf'])
+                ->name('reports.executive.pdf');
+            Route::get('/reports/production.pdf', [RelatorioController::class, 'productionPdf'])
+                ->name('reports.production.pdf');
+            Route::get('/reports/ingredient-consumption.pdf', [RelatorioController::class, 'ingredientConsumptionPdf'])
+                ->name('reports.ingredient-consumption.pdf');
 
             Route::view('/products/sales', 'products.sales')->name('products.sales');
             Route::view('/products/list', 'products.list')->name('products.list');

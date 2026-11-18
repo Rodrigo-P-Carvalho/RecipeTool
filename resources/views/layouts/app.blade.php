@@ -150,13 +150,17 @@
 
                 <div class="space-y-1">
                     <p class="mb-3 px-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Relatórios e acesso</p>
-                    <a href="{{ route('reports.production') }}" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 no-underline transition hover:bg-slate-50 hover:text-blue-700">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500" aria-hidden="true">R</span>
-                        Relatório de produção
-                    </a>
-                    <a href="{{ route('reports.ingredient-consumption') }}" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 no-underline transition hover:bg-slate-50 hover:text-blue-700">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500" aria-hidden="true">C</span>
-                        Consumo de ingredientes
+                    <a href="{{ route('reports.index') }}" @class([
+                        'flex items-center gap-3 rounded-xl px-3 py-3 text-sm no-underline transition',
+                        'bg-blue-50 font-semibold text-blue-700' => request()->routeIs('reports.*'),
+                        'font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-700' => ! request()->routeIs('reports.*'),
+                    ])>
+                        <span @class([
+                            'flex h-8 w-8 items-center justify-center rounded-lg',
+                            'bg-blue-700 text-white' => request()->routeIs('reports.*'),
+                            'bg-slate-100 text-slate-500' => ! request()->routeIs('reports.*'),
+                        ]) aria-hidden="true">R</span>
+                        Relatórios
                     </a>
                     @if (in_array(auth()->user()->role, ['admin', 'gerente'], true))
                         <a href="{{ route('users') }}" @class([

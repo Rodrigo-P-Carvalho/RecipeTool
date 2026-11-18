@@ -800,4 +800,194 @@ class InventoryControllersTest extends TestCase
                 "Produto;\"Quantidade produzida\"\n\"'=HYPERLINK(\"\"https://example.invalid\"\")\";3\n",
             );
     }
+
+    public function test_pdf_reports_download_valid_pdf_files(): void
+    {
+        $this->seed();
+        $user = User::query()->where('email', 'admin@recipetool.com')->sole();
+        $receita = Receita::query()->firstOrFail();
+        $this->travelTo(now()->setDate(2026, 11, 18)->setTime(12, 0));
+
+        Producao::query()->create([
+            'usuario_id' => $user->id,
+            'receita_id' => $receita->id,
+            'quantidade_lotes' => 2,
+            'data_producao' => now(),
+        ]);
+
+        $this->actingAs($user);
+
+        foreach ([
+            'reports.executive.pdf' => 'relatorio-executivo-ate-2026-11-18.pdf',
+            'reports.production.pdf' => 'relatorio-producao-periodo-completo.pdf',
+            'reports.ingredient-consumption.pdf' => 'relatorio-consumo-ingredientes-periodo-completo.pdf',
+        ] as $routeName => $filename) {
+            $response = $this->get(route($routeName));
+
+            $response->assertOk()
+                ->assertDownload($filename)
+                ->assertHeader('Content-Type', 'application/pdf');
+            $this->assertStringStartsWith('%PDF-', $response->getContent());
+        }
+    }
+
+    public function test_pdf_report_period_must_end_on_or_after_its_start_date(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('reports.production.pdf', [
+                'de' => '2026-07-02',
+                'ate' => '2026-07-01',
+            ]))
+            ->assertSessionHasErrors('ate');
+    }
+
+    public function test_guests_are_redirected_from_pdf_reports(): void
+    {
+        foreach ([
+            'reports.executive.pdf',
+            'reports.production.pdf',
+            'reports.ingredient-consumption.pdf',
+        ] as $routeName) {
+            $this->get(route($routeName))
+                ->assertRedirect(route('login'));
+        }
+    }
+
+    public function test_report_center_applies_supported_periods_to_download_links(): void
+    {
+        $user = User::factory()->create();
+        $this->travelTo(now()->setDate(2026, 11, 17)->setTime(12, 0));
+
+        foreach ([
+            'dia' => ['2026-11-17', '2026-11-17'],
+            'mes_atual' => ['2026-11-01', '2026-11-17'],
+            'mes_anterior' => ['2026-10-01', '2026-10-31'],
+            'ano' => ['2026-01-01', '2026-11-17'],
+        ] as $periodo => [$de, $ate]) {
+            $response = $this->actingAs($user)
+                ->get(route('reports.index', ['periodo' => $periodo]));
+
+            $response->assertOk()
+                ->assertSee('Relatórios')
+                ->assertSee(route('reports.production.pdf', ['de' => $de, 'ate' => $ate]))
+                ->assertSee(route('reports.ingredient-consumption', ['de' => $de, 'ate' => $ate]));
+        }
+    }
+
+    public function test_report_center_applies_a_custom_period_to_download_links(): void
+    {
+        $user = User::factory()->create();
+        $this->travelTo(now()->setDate(2026, 11, 17)->setTime(12, 0));
+
+        $this->actingAs($user)
+            ->get(route('reports.index', [
+                'periodo' => 'personalizado',
+                'de' => '2026-10-05',
+                'ate' => '2026-10-12',
+            ]))
+            ->assertOk()
+            ->assertSee(route('reports.production.pdf', [
+                'de' => '2026-10-05',
+                'ate' => '2026-10-12',
+            ]));
+    }
+
+    public function test_report_center_requires_a_valid_custom_date_range(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('reports.index', [
+                'periodo' => 'personalizado',
+                'de' => '2026-11-10',
+                'ate' => '2026-11-09',
+            ]))
+            ->assertSessionHasErrors('ate');
+    }
+
+    public function test_production_and_consumption_exports_only_include_the_selected_period(): void
+    {
+        $user = User::factory()->create();
+        $ingrediente = Ingrediente::query()->create([
+            'nome' => 'Farinha do período',
+            'quantidade_estoque' => '1000.000',
+            'unidade_medida' => 'g',
+            'estoque_minimo' => '100.000',
+            'unidade_embalagem' => 'g',
+            'status_ingrediente' => 'ativo',
+            'preco_embalagem' => '10.00',
+            'tamanho_embalagem' => '1000.000',
+        ]);
+        $produto = Produto::query()->create([
+            'nome' => 'Bolo do período',
+            'quantidade_estoque' => '0.000',
+            'descricao' => 'Produto para testar o filtro de período',
+            'preco_venda' => '10.00',
+        ]);
+        $receita = Receita::query()->create([
+            'produto_id' => $produto->id,
+            'descricao' => 'Receita do período',
+            'custo_total' => '2.00',
+        ]);
+        ItemReceita::query()->create([
+            'receita_id' => $receita->id,
+            'ingrediente_id' => $ingrediente->id,
+            'quantidade_necessaria' => '100.000',
+        ]);
+        Producao::query()->create([
+            'usuario_id' => $user->id,
+            'receita_id' => $receita->id,
+            'quantidade_lotes' => 3,
+            'data_producao' => '2026-10-12 12:00:00',
+        ]);
+        Producao::query()->create([
+            'usuario_id' => $user->id,
+            'receita_id' => $receita->id,
+            'quantidade_lotes' => 2,
+            'data_producao' => '2026-09-12 12:00:00',
+        ]);
+        $this->actingAs($user);
+
+        $this->get(route('reports.production', [
+            'de' => '2026-10-01',
+            'ate' => '2026-10-31',
+        ]))
+            ->assertDownload('relatorio-producao-2026-10-01-a-2026-10-31.csv')
+            ->assertStreamedContent("Produto;\"Quantidade produzida\"\n\"Bolo do período\";3\n");
+
+        $this->get(route('reports.ingredient-consumption', [
+            'de' => '2026-10-01',
+            'ate' => '2026-10-31',
+        ]))
+            ->assertDownload('relatorio-consumo-ingredientes-2026-10-01-a-2026-10-31.csv')
+            ->assertStreamedContent("Ingrediente;\"Unidade de medida\";\"Quantidade consumida\"\n\"Farinha do período\";g;300\n");
+
+        $this->get(route('reports.production.pdf', [
+            'de' => '2026-10-01',
+            'ate' => '2026-10-31',
+        ]))
+            ->assertDownload('relatorio-producao-2026-10-01-a-2026-10-31.pdf');
+
+        $this->get(route('reports.ingredient-consumption.pdf', [
+            'de' => '2026-10-01',
+            'ate' => '2026-10-31',
+        ]))
+            ->assertDownload('relatorio-consumo-ingredientes-2026-10-01-a-2026-10-31.pdf');
+    }
+
+    public function test_report_center_rejects_future_dates(): void
+    {
+        $user = User::factory()->create();
+        $this->travelTo(now()->setDate(2026, 11, 17)->setTime(12, 0));
+
+        $this->actingAs($user)
+            ->get(route('reports.index', [
+                'periodo' => 'personalizado',
+                'de' => '2026-11-18',
+                'ate' => '2026-11-19',
+            ]))
+            ->assertSessionHasErrors(['de', 'ate']);
+    }
 }

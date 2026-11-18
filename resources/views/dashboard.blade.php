@@ -21,6 +21,9 @@
                 <a href="{{ route('stock-adjustments.create') }}" class="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 no-underline transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">
                     Registrar ajuste manual
                 </a>
+                <a href="{{ route('reports.index') }}" class="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-800 no-underline transition hover:bg-blue-100">
+                    Ver relatórios
+                </a>
             </div>
         </section>
 
@@ -77,7 +80,7 @@
                         <h2 class="text-base font-semibold text-slate-900">Custo estimado vs. preço de venda</h2>
                         <p class="mt-1 text-sm text-slate-500">Receitas mais produzidas · valores por lote.</p>
                     </div>
-                    <a href="{{ route('reports.production') }}" class="text-sm font-semibold text-blue-700 no-underline hover:text-blue-900">Ver relatório</a>
+                    <a href="{{ route('reports.index') }}" class="text-sm font-semibold text-blue-700 no-underline hover:text-blue-900">Ver relatório</a>
                 </div>
 
                 @if ($receitasMaisProduzidas->isNotEmpty())

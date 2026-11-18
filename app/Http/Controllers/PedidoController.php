@@ -20,7 +20,8 @@ class PedidoController extends Controller
         $validated = $request->validate([
             'status_pedido' => ['nullable', Rule::in(Pedido::STATUS_FILTRO)],
         ]);
-        $statusPedido = $validated['status_pedido'] ?? '';
+        $statusPedido = $validated['status_pedido']
+            ?? $request->session()->get('filters.orders.status_pedido', '');
 
         $pedidos = Pedido::query()
             ->with('usuario')
@@ -39,6 +40,20 @@ class PedidoController extends Controller
             'statusPedido' => $statusPedido,
             'statusDisponiveis' => Pedido::STATUS_FILTRO,
         ]);
+    }
+
+    public function search(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status_pedido' => ['nullable', Rule::in(Pedido::STATUS_FILTRO)],
+            'clear' => ['sometimes', 'boolean'],
+        ]);
+        $statusPedido = $request->boolean('clear')
+            ? ''
+            : ($validated['status_pedido'] ?? '');
+        $request->session()->put('filters.orders.status_pedido', $statusPedido);
+
+        return redirect()->route('orders.index');
     }
 
     public function create(): View

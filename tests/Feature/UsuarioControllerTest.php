@@ -76,6 +76,49 @@ class UsuarioControllerTest extends TestCase
             ->assertSee('Pessoa Encontrada');
     }
 
+    public function test_user_search_uses_post_and_pagination_keeps_the_filter_without_a_query_parameter(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        foreach (range(1, 11) as $number) {
+            User::factory()->create([
+                'name' => 'Pessoa Encontrada',
+                'email' => "pessoa{$number}@recipetool.test",
+                'role' => 'funcionario',
+            ]);
+        }
+
+        $this->actingAs($admin)
+            ->post(route('users.search'), ['search' => 'Pessoa Encontrada'])
+            ->assertRedirect(route('users'));
+
+        $this->get(route('users'))
+            ->assertOk()
+            ->assertSee('Pessoa Encontrada')
+            ->assertSee(route('users.search'))
+            ->assertViewHas('usuarios', function ($usuarios): bool {
+                parse_str(parse_url($usuarios->nextPageUrl(), PHP_URL_QUERY), $query);
+
+                return $usuarios->total() === 11
+                    && ! isset($query['search'])
+                    && ($query['page'] ?? null) === '2';
+            });
+
+        $this->get(route('users', ['page' => 2]))
+            ->assertOk()
+            ->assertSee('Pessoa Encontrada')
+            ->assertSee('value="Pessoa Encontrada"', false);
+
+        $this->post(route('users.search'), [
+            'search' => 'Pessoa Encontrada',
+            'clear' => '1',
+        ])->assertRedirect(route('users'));
+
+        $this->get(route('users'))
+            ->assertOk()
+            ->assertSee($admin->name)
+            ->assertDontSee('value="Pessoa Encontrada"', false);
+    }
+
     public function test_admin_can_update_and_delete_another_user_but_cannot_delete_themselves(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -130,6 +173,8 @@ class UsuarioControllerTest extends TestCase
 
         $this->actingAs($employee)
             ->get(route('users'))
+            ->assertForbidden();
+        $this->post(route('users.search'), ['search' => 'Admin'])
             ->assertForbidden();
 
         $this->get(route('stock.index'))->assertOk();

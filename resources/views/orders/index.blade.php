@@ -11,7 +11,8 @@
         <a href="{{ route('orders.create') }}" class="inline-flex rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white no-underline shadow-sm transition hover:bg-blue-800">Novo pedido</a>
     </div>
 
-    <form method="GET" action="{{ route('orders.index') }}" class="mb-5 flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="POST" action="{{ route('orders.search') }}" class="mb-5 flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        @csrf
         <div class="min-w-52">
             <label for="status_pedido" class="block text-sm font-medium text-slate-700">Filtrar por status</label>
             <select id="status_pedido" name="status_pedido" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
@@ -23,7 +24,7 @@
         </div>
         <button type="submit" class="rounded-lg bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900">Filtrar</button>
         @if ($statusPedido !== '')
-            <a href="{{ route('orders.index') }}" class="px-2 py-2.5 text-sm font-medium text-blue-700 no-underline hover:text-blue-900">Limpar filtro</a>
+            <button type="submit" name="clear" value="1" class="px-2 py-2.5 text-sm font-medium text-blue-700 hover:text-blue-900">Limpar filtro</button>
         @endif
     </form>
 

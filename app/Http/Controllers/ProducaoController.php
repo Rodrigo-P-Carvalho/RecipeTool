@@ -38,7 +38,9 @@ class ProducaoController extends Controller
         $attributes = $request->validate([
             'receita_id' => ['required', 'integer', 'exists:receitas,id'],
             'quantidade_lotes' => ['required', 'integer', 'min:1'],
-            'data_producao' => ['nullable', 'date'],
+            'data_producao' => ['nullable', 'date', 'before_or_equal:now'],
+        ], [
+            'data_producao.before_or_equal' => 'A data e hora da produção não podem ser futuras.',
         ]);
 
         $producao = DB::transaction(function () use ($attributes, $loteIngredienteService): Producao {
@@ -69,7 +71,22 @@ class ProducaoController extends Controller
                     ]);
                 }
 
-                $loteIngredienteService->consumir($ingrediente, $quantidadeNecessaria);
+                $quantidadeDisponivel = $loteIngredienteService->quantidadeDisponivel(
+                    $ingrediente,
+                    somenteLotesValidos: true,
+                );
+
+                if ($quantidadeDisponivel < $quantidadeNecessaria) {
+                    throw ValidationException::withMessages([
+                        'receita_id' => "Estoque dentro da validade insuficiente para o ingrediente {$ingrediente->nome}.",
+                    ]);
+                }
+
+                $loteIngredienteService->consumir(
+                    $ingrediente,
+                    $quantidadeNecessaria,
+                    somenteLotesValidos: true,
+                );
                 $ingrediente->decrement('quantidade_estoque', $quantidadeNecessaria);
 
                 $this->registrarMovimentacao(

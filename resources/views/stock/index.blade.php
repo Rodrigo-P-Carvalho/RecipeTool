@@ -56,7 +56,9 @@
             <h2 id="ingredientes-titulo" class="text-xl font-semibold text-slate-900">Estoque de ingredientes</h2>
             <a href="{{ route('ingredients') }}" class="text-sm font-medium text-blue-700 no-underline hover:text-blue-900">Gerenciar ingredientes →</a>
         </div>
-        <form action="{{ route('stock.index') }}" method="GET" role="search" class="mb-4 flex flex-col gap-3 sm:flex-row">
+        <form action="{{ route('stock.search') }}" method="POST" role="search" class="mb-4 flex flex-col gap-3 sm:flex-row">
+            @csrf
+            <input type="hidden" name="busca_produto" value="{{ $buscaProduto }}">
             <div class="flex-1">
                 <label for="stock-ingredient-search" class="sr-only">Buscar ingrediente por nome</label>
                 <input id="stock-ingredient-search" type="search" name="busca_ingrediente" value="{{ $buscaIngrediente }}" placeholder="Buscar ingrediente por nome..." class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
@@ -64,7 +66,7 @@
             <div class="flex gap-2">
                 <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800">Buscar</button>
                 @if ($buscaIngrediente !== '')
-                    <a href="{{ route('stock.index', ['busca_produto' => $buscaProduto]) }}" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 no-underline transition hover:bg-slate-50">Limpar</a>
+                    <button type="submit" name="clear" value="busca_ingrediente" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Limpar</button>
                 @endif
             </div>
         </form>
@@ -102,7 +104,9 @@
             <h2 id="produtos-titulo" class="text-xl font-semibold text-slate-900">Estoque de produtos prontos</h2>
             <a href="{{ route('products') }}" class="text-sm font-medium text-blue-700 no-underline hover:text-blue-900">Gerenciar produtos →</a>
         </div>
-        <form action="{{ route('stock.index') }}" method="GET" role="search" class="mb-4 flex flex-col gap-3 sm:flex-row">
+        <form action="{{ route('stock.search') }}" method="POST" role="search" class="mb-4 flex flex-col gap-3 sm:flex-row">
+            @csrf
+            <input type="hidden" name="busca_ingrediente" value="{{ $buscaIngrediente }}">
             <div class="flex-1">
                 <label for="stock-product-search" class="sr-only">Buscar produto por nome</label>
                 <input id="stock-product-search" type="search" name="busca_produto" value="{{ $buscaProduto }}" placeholder="Buscar produto por nome..." class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
@@ -110,7 +114,7 @@
             <div class="flex gap-2">
                 <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800">Buscar</button>
                 @if ($buscaProduto !== '')
-                    <a href="{{ route('stock.index', ['busca_ingrediente' => $buscaIngrediente]) }}" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 no-underline transition hover:bg-slate-50">Limpar</a>
+                    <button type="submit" name="clear" value="busca_produto" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Limpar</button>
                 @endif
             </div>
         </form>

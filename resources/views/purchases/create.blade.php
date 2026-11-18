@@ -18,7 +18,7 @@
             <section class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
                 <div>
                     <label for="data_compra" class="mb-1 block text-sm font-medium text-slate-700">Data da compra</label>
-                    <input id="data_compra" name="data_compra" type="date" value="{{ old('data_compra', now()->toDateString()) }}" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    <input id="data_compra" name="data_compra" type="date" value="{{ old('data_compra', now()->toDateString()) }}" max="{{ now()->toDateString() }}" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
                     @error('data_compra') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
                 </div>
                 <div>
@@ -29,18 +29,18 @@
             </section>
 
             <section class="space-y-4" aria-labelledby="purchase-items-heading">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 id="purchase-items-heading" class="text-xl font-semibold text-slate-900">Itens da compra</h2>
-                        <p class="mt-1 text-sm text-slate-500">Informe a quantidade na unidade de medida do ingrediente e o preço total deste lote.</p>
-                    </div>
-                    <button id="add-purchase-item" type="button" class="rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">Adicionar ingrediente</button>
+                <div>
+                    <h2 id="purchase-items-heading" class="text-xl font-semibold text-slate-900">Itens da compra</h2>
+                    <p class="mt-1 text-sm text-slate-500">Informe a quantidade na unidade de medida do ingrediente e o preço total deste lote.</p>
                 </div>
 
                 <div id="purchase-items" class="space-y-4">
                     @php($purchaseItems = old('itens', [[]]))
                     @foreach ($purchaseItems as $index => $item)
                         <article class="purchase-item rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <div class="mb-4 flex justify-end">
+                                <button type="button" class="remove-purchase-item rounded-lg px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50" aria-label="Remover ingrediente" @disabled(count($purchaseItems) < 2)>Remover ingrediente</button>
+                            </div>
                             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 <div>
                                     <label for="ingredient-{{ $index }}" class="mb-1 block text-sm font-medium text-slate-700">Ingrediente</label>
@@ -74,13 +74,11 @@
                                     <input id="lot-code-{{ $index }}" name="itens[{{ $index }}][codigo_lote]" type="text" value="{{ $item['codigo_lote'] ?? '' }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
                                     @error("itens.{$index}.codigo_lote") <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
                                 </div>
-                                <div class="flex items-end">
-                                    <button type="button" class="remove-purchase-item rounded-lg px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Remover item</button>
-                                </div>
                             </div>
                         </article>
                     @endforeach
                 </div>
+                <button id="add-purchase-item" type="button" aria-controls="purchase-items" class="inline-flex items-center rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">Adicionar ingrediente</button>
             </section>
 
             <div class="flex flex-wrap gap-3">
@@ -91,6 +89,9 @@
 
         <template id="purchase-item-template">
             <article class="purchase-item rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="mb-4 flex justify-end">
+                    <button type="button" class="remove-purchase-item rounded-lg px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50" aria-label="Remover ingrediente">Remover ingrediente</button>
+                </div>
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                         <label for="ingredient-__INDEX__" class="mb-1 block text-sm font-medium text-slate-700">Ingrediente</label>
@@ -116,9 +117,6 @@
                     <div>
                         <label for="lot-code-__INDEX__" class="mb-1 block text-sm font-medium text-slate-700">Código do lote (opcional)</label>
                         <input id="lot-code-__INDEX__" name="itens[__INDEX__][codigo_lote]" type="text" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
-                    </div>
-                    <div class="flex items-end">
-                        <button type="button" class="remove-purchase-item rounded-lg px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Remover item</button>
                     </div>
                 </div>
             </article>
@@ -146,10 +144,18 @@
                 quantity.min = isWholeUnit ? '1' : '0.001';
             };
 
+            const updateRemoveButtons = () => {
+                const isOnlyItem = list.querySelectorAll('.purchase-item').length <= 1;
+                list.querySelectorAll('.remove-purchase-item').forEach((button) => {
+                    button.disabled = isOnlyItem;
+                });
+            };
+
             list.querySelectorAll('select[name$="[ingrediente_id]"]').forEach((select) => {
                 updateQuantityStep(select);
                 select.addEventListener('change', () => updateQuantityStep(select));
             });
+            updateRemoveButtons();
 
             addButton.addEventListener('click', () => {
                 const item = template.content.cloneNode(true);
@@ -164,11 +170,15 @@
                 const select = list.lastElementChild.querySelector('select[name$="[ingrediente_id]"]');
                 select.addEventListener('change', () => updateQuantityStep(select));
                 nextIndex += 1;
+                updateRemoveButtons();
             });
 
             list.addEventListener('click', (event) => {
-                if (event.target.closest('.remove-purchase-item') && list.querySelectorAll('.purchase-item').length > 1) {
-                    event.target.closest('.purchase-item').remove();
+                const removeButton = event.target.closest('.remove-purchase-item');
+
+                if (removeButton && ! removeButton.disabled) {
+                    removeButton.closest('.purchase-item').remove();
+                    updateRemoveButtons();
                 }
             });
         })();

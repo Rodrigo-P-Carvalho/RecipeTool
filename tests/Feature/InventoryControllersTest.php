@@ -314,7 +314,7 @@ class InventoryControllersTest extends TestCase
         $user = User::factory()->create();
         $ingrediente = Ingrediente::query()->create([
             'nome' => 'Farinha',
-            'quantidade_estoque' => '2000.000',
+            'quantidade_estoque' => '0.000',
             'unidade_medida' => 'kg',
             'estoque_minimo' => '500.000',
             'unidade_embalagem' => 'g',
@@ -339,7 +339,19 @@ class InventoryControllersTest extends TestCase
             'quantidade_necessaria' => '250.000',
         ]);
 
-        $response = $this->actingAs($user)->post(route('productions.store'), [
+        $this->actingAs($user)->post(route('purchases.store'), [
+            'data_compra' => now()->toDateString(),
+            'itens' => [
+                [
+                    'ingrediente_id' => $ingrediente->id,
+                    'quantidade' => '2',
+                    'preco_custo' => '25.00',
+                    'data_validade' => now()->addDays(30)->toDateString(),
+                ],
+            ],
+        ])->assertRedirect(route('purchases.index'));
+
+        $response = $this->post(route('productions.store'), [
             'receita_id' => $receita->id,
             'quantidade_lotes' => 2,
         ]);
@@ -453,12 +465,14 @@ class InventoryControllersTest extends TestCase
         ]);
         $this->assertDatabaseCount('ajustes_estoque', 0);
 
+        $adjustmentDate = now()->subDay()->startOfMinute();
         $response = $this->actingAs($user)->post(route('stock-adjustments.store'), [
             'ajustavel_type' => Ingrediente::class,
             'ajustavel_id' => $ingrediente->id,
             'tipo_ajuste' => 'entrada',
             'quantidade' => '0.500',
             'justificativa' => 'Recebimento de compra',
+            'data_ajuste' => $adjustmentDate->format('Y-m-d\TH:i'),
         ]);
 
         $ajuste = AjusteEstoque::query()->sole();
@@ -475,6 +489,39 @@ class InventoryControllersTest extends TestCase
             'ajustavel_id' => $ingrediente->id,
             'justificativa' => 'Recebimento de compra',
             'quantidade' => '500.000',
+            'data_ajuste' => $adjustmentDate->format('Y-m-d H:i:s'),
+        ]);
+    }
+
+    public function test_manual_stock_adjustment_rejects_a_future_adjustment_date(): void
+    {
+        $user = User::factory()->create();
+        $produto = Produto::query()->create([
+            'nome' => 'Brigadeiro',
+            'quantidade_estoque' => '6.000',
+            'descricao' => 'Brigadeiro tradicional',
+            'preco_venda' => '3.50',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from(route('stock-adjustments.create'))
+            ->post(route('stock-adjustments.store'), [
+                'ajustavel_type' => Produto::class,
+                'ajustavel_id' => $produto->id,
+                'tipo_ajuste' => 'entrada',
+                'quantidade' => '2',
+                'justificativa' => 'Entrada registrada para teste.',
+                'data_ajuste' => now()->addDay()->format('Y-m-d\TH:i'),
+            ]);
+
+        $response->assertRedirect(route('stock-adjustments.create'))
+            ->assertSessionHasErrors([
+                'data_ajuste' => 'A data e hora do ajuste não podem ser futuras.',
+            ]);
+        $this->assertDatabaseCount('ajustes_estoque', 0);
+        $this->assertDatabaseHas('produtos', [
+            'id' => $produto->id,
+            'quantidade_estoque' => '6.000',
         ]);
     }
 

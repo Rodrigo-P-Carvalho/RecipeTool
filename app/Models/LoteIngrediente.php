@@ -68,6 +68,18 @@ class LoteIngrediente extends Model
         });
     }
 
+    protected function quantidadeConsumidaFormatada(): Attribute
+    {
+        return Attribute::make(get: function (): string {
+            $ingrediente = $this->ingrediente;
+            $quantidadeConsumida = (float) $this->quantidade_inicial - (float) $this->quantidade_atual;
+            $quantidade = $ingrediente->unidade_medida->converterDaBase($quantidadeConsumida);
+            $formatada = rtrim(rtrim(number_format($quantidade, 2, ',', '.'), '0'), ',');
+
+            return $formatada.' '.$ingrediente->unidade_medida->value;
+        });
+    }
+
     protected function quantidadeInicialFormatada(): Attribute
     {
         return Attribute::make(get: function (): string {

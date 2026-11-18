@@ -19,7 +19,7 @@
                         <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Compra</th>
                         <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Data</th>
                         <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Responsável</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Lotes</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Itens e lotes</th>
                         <th class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Total</th>
                     </tr>
                 </thead>
@@ -33,9 +33,13 @@
                                 <ul class="space-y-2">
                                     @foreach ($compra->lotes as $lote)
                                         <li>
-                                            {{ $lote->ingrediente->nome }} — lote {{ $lote->codigo_lote }},
-                                            validade {{ $lote->data_validade->format('d/m/Y') }},
-                                            {{ $lote->quantidade_inicial_formatada }}
+                                            <strong class="text-slate-800">{{ $lote->ingrediente->nome }}</strong>
+                                            <span class="text-slate-500">— lote {{ $lote->codigo_lote }}, validade {{ $lote->data_validade->format('d/m/Y') }}</span>
+                                            <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                                                <span>Comprado: {{ $lote->quantidade_inicial_formatada }}</span>
+                                                <span>Usado: {{ $lote->quantidade_consumida_formatada }}</span>
+                                                <span class="font-semibold text-slate-700">Atual no lote: {{ $lote->quantidade_atual_formatada }}</span>
+                                            </div>
                                         </li>
                                     @endforeach
                                 </ul>

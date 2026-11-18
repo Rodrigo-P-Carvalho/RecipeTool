@@ -17,7 +17,7 @@ class UsuarioController extends Controller
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
         ]);
-        $search = trim($validated['search'] ?? '');
+        $search = trim($validated['search'] ?? $request->session()->get('filters.users.search', ''));
 
         $usuarios = User::query()
             ->when($search !== '', function ($query) use ($search): void {
@@ -31,6 +31,18 @@ class UsuarioController extends Controller
             ->withQueryString();
 
         return view('usuarios.index', compact('usuarios', 'search'));
+    }
+
+    public function search(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'clear' => ['sometimes', 'boolean'],
+        ]);
+        $search = $request->boolean('clear') ? '' : trim($validated['search'] ?? '');
+        $request->session()->put('filters.users.search', $search);
+
+        return redirect()->route('users');
     }
 
     public function create(): View

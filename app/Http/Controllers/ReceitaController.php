@@ -20,7 +20,7 @@ class ReceitaController extends Controller
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
         ]);
-        $search = trim($validated['search'] ?? '');
+        $search = trim($validated['search'] ?? $request->session()->get('filters.recipes.search', ''));
 
         $receitas = Receita::query()
             ->with('produto')
@@ -37,6 +37,18 @@ class ReceitaController extends Controller
             ->withQueryString();
 
         return view('recipes', compact('receitas', 'search'));
+    }
+
+    public function search(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'clear' => ['sometimes', 'boolean'],
+        ]);
+        $search = $request->boolean('clear') ? '' : trim($validated['search'] ?? '');
+        $request->session()->put('filters.recipes.search', $search);
+
+        return redirect()->route('recipes');
     }
 
     public function create(): View

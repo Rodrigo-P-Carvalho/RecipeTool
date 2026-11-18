@@ -51,7 +51,9 @@ class AjusteEstoqueController extends Controller
             ],
             'tipo_ajuste' => ['required', Rule::in(['entrada', 'saida'])],
             'justificativa' => ['required', 'string', 'max:255'],
-            'data_ajuste' => ['nullable', 'date'],
+            'data_ajuste' => ['nullable', 'date', 'before_or_equal:now'],
+        ], [
+            'data_ajuste.before_or_equal' => 'A data e hora do ajuste não podem ser futuras.',
         ]);
 
         $ajuste = DB::transaction(function () use ($attributes, $request, $loteIngredienteService): AjusteEstoque {

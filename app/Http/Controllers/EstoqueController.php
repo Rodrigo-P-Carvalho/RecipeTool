@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Ingrediente;
 use App\Models\LoteIngrediente;
 use App\Models\Produto;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -16,8 +17,13 @@ class EstoqueController extends Controller
             'busca_ingrediente' => ['nullable', 'string', 'max:100'],
             'busca_produto' => ['nullable', 'string', 'max:100'],
         ]);
-        $buscaIngrediente = trim($validated['busca_ingrediente'] ?? '');
-        $buscaProduto = trim($validated['busca_produto'] ?? '');
+        $filtros = $request->session()->get('filters.stock', []);
+        $buscaIngrediente = trim(
+            $validated['busca_ingrediente'] ?? $filtros['busca_ingrediente'] ?? '',
+        );
+        $buscaProduto = trim(
+            $validated['busca_produto'] ?? $filtros['busca_produto'] ?? '',
+        );
 
         $ingredientes = Ingrediente::query()
             ->when(
@@ -55,5 +61,29 @@ class EstoqueController extends Controller
             'buscaProduto',
             'lotesComAlertas',
         ));
+    }
+
+    public function search(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'busca_ingrediente' => ['nullable', 'string', 'max:100'],
+            'busca_produto' => ['nullable', 'string', 'max:100'],
+            'clear' => ['nullable', 'in:busca_ingrediente,busca_produto'],
+        ]);
+
+        if (($validated['clear'] ?? null) === 'busca_ingrediente') {
+            $validated['busca_ingrediente'] = '';
+        }
+
+        if (($validated['clear'] ?? null) === 'busca_produto') {
+            $validated['busca_produto'] = '';
+        }
+
+        $request->session()->put('filters.stock', [
+            'busca_ingrediente' => trim($validated['busca_ingrediente'] ?? ''),
+            'busca_produto' => trim($validated['busca_produto'] ?? ''),
+        ]);
+
+        return redirect()->route('stock.index');
     }
 }

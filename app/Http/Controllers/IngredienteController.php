@@ -9,9 +9,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class IngredienteController extends Controller
 {
@@ -20,9 +20,14 @@ class IngredienteController extends Controller
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
         ]);
-        $search = trim($validated['search'] ?? '');
+        $search = trim($validated['search'] ?? $request->session()->get('filters.ingredients.search', ''));
 
         $ingredientes = Ingrediente::query()
+            ->withSum([
+                'lotes as quantidade_fora_validade' => fn ($query) => $query
+                    ->where('quantidade_atual', '>', 0)
+                    ->whereDate('data_validade', '<', today()->toDateString()),
+            ], 'quantidade_atual')
             ->when(
                 $search !== '',
                 fn ($query) => $query->whereLike('nome', "%{$search}%"),
@@ -32,6 +37,18 @@ class IngredienteController extends Controller
             ->withQueryString();
 
         return view('ingredients', compact('ingredientes', 'search'));
+    }
+
+    public function search(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'clear' => ['sometimes', 'boolean'],
+        ]);
+        $search = $request->boolean('clear') ? '' : trim($validated['search'] ?? '');
+        $request->session()->put('filters.ingredients.search', $search);
+
+        return redirect()->route('ingredients');
     }
 
     public function create(): View
@@ -153,7 +170,7 @@ class IngredienteController extends Controller
     }
 
     /**
-     * @param array{unidade_medida: string, unidade_embalagem: string} $attributes
+     * @param  array{unidade_medida: string, unidade_embalagem: string}  $attributes
      */
     private function validarUnidadesCompativeis(array $attributes, ?UnidadeMedida $unidadeOriginal = null): void
     {

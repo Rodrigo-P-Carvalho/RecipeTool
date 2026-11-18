@@ -132,6 +132,61 @@ class SeederAndViewsTest extends TestCase
             ->assertSee(route('orders.create'));
     }
 
+    public function test_purchase_form_places_add_button_after_items_and_shows_remove_controls(): void
+    {
+        $this->seed();
+        $user = User::query()->where('email', 'admin@recipetool.com')->sole();
+
+        $response = $this->actingAs($user)
+            ->get(route('purchases.create'));
+
+        $response->assertOk()
+            ->assertSee('Adicionar ingrediente')
+            ->assertSee('Remover ingrediente')
+            ->assertSee('aria-label="Remover ingrediente"', false)
+            ->assertSee('disabled', false);
+
+        $content = $response->getContent();
+        $templatePosition = strpos($content, '<template id="purchase-item-template"');
+        $visibleForm = substr($content, 0, $templatePosition);
+        $lastItemPosition = strrpos($visibleForm, '</article>');
+        $addButtonPosition = strpos($visibleForm, 'id="add-purchase-item"');
+
+        $this->assertLessThan($addButtonPosition, $lastItemPosition);
+    }
+
+    public function test_transaction_date_inputs_limit_selection_to_the_present(): void
+    {
+        $this->travelTo(now()->startOfMinute());
+        $this->seed();
+        $user = User::query()->where('email', 'admin@recipetool.com')->sole();
+
+        $purchaseResponse = $this->actingAs($user)
+            ->get(route('purchases.create'))
+            ->assertOk()
+            ->assertSee('name="data_compra" type="date"', false)
+            ->assertSee('max="'.now()->toDateString().'"', false)
+            ->assertSee('name="itens[0][data_validade]" type="date"', false);
+
+        preg_match(
+            '/<input\b[^>]*name="itens\[0\]\[data_validade\]"[^>]*>/s',
+            $purchaseResponse->getContent(),
+            $expirationInput,
+        );
+        $this->assertCount(1, $expirationInput);
+        $this->assertStringNotContainsString('max=', $expirationInput[0]);
+
+        $this->get(route('productions.create'))
+            ->assertOk()
+            ->assertSee('name="data_producao" type="datetime-local"', false)
+            ->assertSee('max="'.now()->format('Y-m-d\TH:i').'"', false);
+
+        $this->get(route('stock-adjustments.create'))
+            ->assertOk()
+            ->assertSee('name="data_ajuste" type="datetime-local"', false)
+            ->assertSee('max="'.now()->format('Y-m-d\TH:i').'"', false);
+    }
+
     public function test_stock_dashboard_highlights_ingredients_at_or_below_the_minimum(): void
     {
         $this->seed();
@@ -160,15 +215,40 @@ class SeederAndViewsTest extends TestCase
             ->assertDontSee('Leite Condensado')
             ->assertSee('value="farinha"', false);
 
+        $this->post(route('ingredients.search'), ['search' => 'farinha'])
+            ->assertRedirect(route('ingredients'));
+        $this->get(route('ingredients'))
+            ->assertOk()
+            ->assertSee('Farinha de Trigo')
+            ->assertDontSee('Leite Condensado')
+            ->assertSee('method="POST"', false)
+            ->assertSee(route('ingredients.search'));
+
         $this->get(route('products', ['search' => 'bolo']))
             ->assertOk()
             ->assertSee('Bolo de Chocolate')
             ->assertDontSee('Caixa de Brigadeiros');
 
+        $this->post(route('products.search'), ['search' => 'bolo'])
+            ->assertRedirect(route('products'));
+        $this->get(route('products'))
+            ->assertOk()
+            ->assertSee('Bolo de Chocolate')
+            ->assertDontSee('Caixa de Brigadeiros')
+            ->assertSee(route('products.search'));
+
         $this->get(route('recipes', ['search' => 'caixa']))
             ->assertOk()
             ->assertSee('Caixa de Brigadeiros')
             ->assertDontSee('Bolo de Chocolate');
+
+        $this->post(route('recipes.search'), ['search' => 'caixa'])
+            ->assertRedirect(route('recipes'));
+        $this->get(route('recipes'))
+            ->assertOk()
+            ->assertSee('Caixa de Brigadeiros')
+            ->assertDontSee('Bolo de Chocolate')
+            ->assertSee(route('recipes.search'));
     }
 
     public function test_inventory_pagination_preserves_search_filters(): void
@@ -235,6 +315,55 @@ class SeederAndViewsTest extends TestCase
             });
     }
 
+    public function test_stock_search_uses_post_and_keeps_filters_out_of_the_url_and_pagination_links(): void
+    {
+        $this->seed();
+        $user = User::query()->where('email', 'admin@recipetool.com')->sole();
+
+        foreach (range(1, 31) as $numero) {
+            Produto::query()->create([
+                'nome' => "Produto adicional {$numero}",
+                'quantidade_estoque' => '0.000',
+                'descricao' => 'Produto de teste.',
+                'preco_venda' => '10.00',
+            ]);
+        }
+
+        $this->actingAs($user)
+            ->post(route('stock.search'), [
+                'busca_ingrediente' => 'farinha',
+                'busca_produto' => 'produto adicional',
+            ])
+            ->assertRedirect(route('stock.index'));
+
+        $this->get(route('stock.index'))
+            ->assertOk()
+            ->assertSee('Farinha de Trigo')
+            ->assertDontSee('Leite Condensado')
+            ->assertSee('value="farinha"', false)
+            ->assertSee(route('stock.search'))
+            ->assertViewHas('produtos', function ($produtos): bool {
+                parse_str(parse_url($produtos->nextPageUrl(), PHP_URL_QUERY), $query);
+
+                return $produtos->total() === 31
+                    && ! isset($query['busca_ingrediente'])
+                    && ! isset($query['busca_produto'])
+                    && ($query['produtos_page'] ?? null) === '2';
+            });
+
+        $this->post(route('stock.search'), [
+            'busca_ingrediente' => 'farinha',
+            'busca_produto' => 'produto adicional',
+            'clear' => 'busca_ingrediente',
+        ])->assertRedirect(route('stock.index'));
+
+        $this->get(route('stock.index'))
+            ->assertOk()
+            ->assertSee('Leite Condensado')
+            ->assertSee('Produto adicional 1')
+            ->assertDontSee('Bolo de Chocolate');
+    }
+
     public function test_production_feedback_uses_bootstrap_success_and_error_alerts(): void
     {
         $this->seed();
@@ -256,7 +385,23 @@ class SeederAndViewsTest extends TestCase
             ->assertSee('bg-red-50')
             ->assertSee("Estoque insuficiente para o ingrediente {$ingrediente->nome}.");
 
-        $ingrediente->update(['quantidade_estoque' => '5000.000']);
+        $itensCompra = $receita->itens()
+            ->with('ingrediente')
+            ->get()
+            ->map(fn ($item): array => [
+                'ingrediente_id' => $item->ingrediente_id,
+                'quantidade' => $item->ingrediente->unidade_medida->converterDaBase(
+                    (float) $item->quantidade_necessaria,
+                ),
+                'preco_custo' => '10.00',
+                'data_validade' => now()->addDays(30)->toDateString(),
+            ])
+            ->all();
+
+        $this->post(route('purchases.store'), [
+            'data_compra' => now()->toDateString(),
+            'itens' => $itensCompra,
+        ])->assertRedirect(route('purchases.index'));
 
         $response = $this->post(route('productions.store'), [
             'receita_id' => $receita->id,

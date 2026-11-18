@@ -11,7 +11,8 @@
         <a href="{{ route('ingredients.create') }}" class="inline-flex items-center rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white no-underline shadow-sm transition hover:bg-blue-800">Cadastrar ingrediente</a>
     </div>
 
-    <form action="{{ route('ingredients') }}" method="GET" role="search" class="mb-5 flex flex-col gap-3 sm:flex-row">
+    <form action="{{ route('ingredients.search') }}" method="POST" role="search" class="mb-5 flex flex-col gap-3 sm:flex-row">
+        @csrf
         <div class="flex-1">
             <label for="ingredient-search" class="sr-only">Buscar ingrediente por nome</label>
             <input id="ingredient-search" type="search" name="search" value="{{ $search }}" placeholder="Buscar ingrediente por nome..." class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
@@ -19,7 +20,7 @@
         <div class="flex gap-2">
             <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800">Buscar</button>
             @if ($search !== '')
-                <a href="{{ route('ingredients') }}" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 no-underline transition hover:bg-slate-50">Limpar</a>
+                <button type="submit" name="clear" value="1" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Limpar</button>
             @endif
         </div>
     </form>
@@ -31,6 +32,7 @@
                     <tr>
                         <th scope="col" class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ingrediente</th>
                         <th scope="col" class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Saldo</th>
+                        <th scope="col" class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Quantidade fora de validade</th>
                         <th scope="col" class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Mínimo</th>
                         <th scope="col" class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Custo unitário</th>
                         <th scope="col" class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
@@ -43,6 +45,11 @@
                         <tr @class(['bg-red-50' => $estoqueBaixo, 'hover:bg-slate-50' => ! $estoqueBaixo])>
                             <td class="whitespace-nowrap px-5 py-4 text-sm font-semibold text-slate-900">{{ $ingrediente->nome }}</td>
                             <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $ingrediente->quantidade_estoque_formatada }}</td>
+                            <td @class([
+                                'whitespace-nowrap px-5 py-4 text-sm',
+                                'font-semibold text-red-700' => (float) $ingrediente->quantidade_fora_validade > 0,
+                                'text-slate-600' => (float) $ingrediente->quantidade_fora_validade <= 0,
+                            ])>{{ $ingrediente->quantidade_fora_validade_formatada }}</td>
                             <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $ingrediente->estoque_minimo_formatado }}</td>
                             <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $ingrediente->custo_formatado }}</td>
                             <td class="whitespace-nowrap px-5 py-4">
@@ -66,7 +73,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-5 py-12 text-center text-sm text-slate-500">{{ $search !== '' ? "Nenhum ingrediente encontrado para \"{$search}\"." : 'Nenhum ingrediente cadastrado.' }}</td></tr>
+                        <tr><td colspan="7" class="px-5 py-12 text-center text-sm text-slate-500">{{ $search !== '' ? "Nenhum ingrediente encontrado para \"{$search}\"." : 'Nenhum ingrediente cadastrado.' }}</td></tr>
                     @endforelse
                 </tbody>
             </table>

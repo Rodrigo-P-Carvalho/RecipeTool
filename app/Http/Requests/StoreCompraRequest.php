@@ -30,7 +30,7 @@ class StoreCompraRequest extends FormRequest
             ->all();
 
         return [
-            'data_compra' => ['required', 'date'],
+            'data_compra' => ['required', 'date', 'before_or_equal:today'],
             'observacoes' => ['nullable', 'string'],
             'itens' => ['required', 'array', 'min:1'],
             'itens.*.ingrediente_id' => [
@@ -57,6 +57,16 @@ class StoreCompraRequest extends FormRequest
             'itens.*.preco_custo' => ['required', 'decimal:0,2', 'min:0'],
             'itens.*.data_validade' => ['required', 'date'],
             'itens.*.codigo_lote' => ['nullable', 'string', 'max:100'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'data_compra.before_or_equal' => 'A data da compra não pode ser futura.',
         ];
     }
 }

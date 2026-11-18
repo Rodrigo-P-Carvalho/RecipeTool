@@ -175,6 +175,15 @@ class PedidoTest extends TestCase
             'status_pedido' => Pedido::STATUS_PAGO,
             'usuario_id' => $user->id,
         ]);
+        $this->post(route('orders.search'), [
+            'status_pedido' => Pedido::STATUS_PAGO,
+        ])->assertRedirect(route('orders.index'));
+        $this->get(route('orders.index'))
+            ->assertOk()
+            ->assertSee('#'.$pedido->id)
+            ->assertSee(Pedido::STATUS_PAGO)
+            ->assertSee(route('orders.search'));
+
         $this->get(route('orders.index', ['status_pedido' => Pedido::STATUS_PAGO]))
             ->assertOk()
             ->assertSee('#'.$pedido->id)

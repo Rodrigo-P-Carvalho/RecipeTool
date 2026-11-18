@@ -28,7 +28,7 @@
             </div>
             <div class="xl:col-span-1">
                 <label for="data_producao" class="block text-sm font-medium text-slate-700">Data e hora</label>
-                <input id="data_producao" name="data_producao" type="datetime-local" value="{{ old('data_producao', now()->format('Y-m-d\TH:i')) }}" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('data_producao') border-red-500 @enderror">
+                <input id="data_producao" name="data_producao" type="datetime-local" value="{{ old('data_producao', now()->format('Y-m-d\TH:i')) }}" max="{{ now()->format('Y-m-d\TH:i') }}" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 @error('data_producao') border-red-500 @enderror">
                 @error('data_producao')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
             </div>
         </div>

@@ -43,6 +43,8 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('password.change')->group(function () {
         Route::middleware('role:admin,gerente')->group(function () {
+            Route::post('/users/search', [UsuarioController::class, 'search'])
+                ->name('users.search');
             Route::resource('users', UsuarioController::class)
                 ->except(['show'])
                 ->parameters(['users' => 'usuario'])
@@ -52,15 +54,23 @@ Route::middleware('auth')->group(function () {
         Route::middleware('role:admin,gerente,funcionario')->group(function () {
             Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
+            Route::post('/ingredients/search', [IngredienteController::class, 'search'])
+                ->name('ingredients.search');
             Route::resource('ingredients', IngredienteController::class)
                 ->parameters(['ingredients' => 'ingrediente'])
                 ->names(['index' => 'ingredients']);
+            Route::post('/products/search', [ProdutoController::class, 'search'])
+                ->name('products.search');
             Route::resource('products', ProdutoController::class)
                 ->parameters(['products' => 'produto'])
                 ->names(['index' => 'products']);
+            Route::post('/recipes/search', [ReceitaController::class, 'search'])
+                ->name('recipes.search');
             Route::resource('recipes', ReceitaController::class)
                 ->parameters(['recipes' => 'receita'])
                 ->names(['index' => 'recipes']);
+            Route::post('/orders/search', [PedidoController::class, 'search'])
+                ->name('orders.search');
             Route::resource('orders', PedidoController::class)
                 ->only(['index', 'create', 'store', 'show'])
                 ->parameters(['orders' => 'pedido']);
@@ -77,6 +87,8 @@ Route::middleware('auth')->group(function () {
             Route::resource('purchases', CompraController::class)
                 ->only(['index', 'create', 'store']);
 
+            Route::post('/stock/search', [EstoqueController::class, 'search'])
+                ->name('stock.search');
             Route::get('/stock', [EstoqueController::class, 'index'])->name('stock.index');
             Route::get('/reports/production.csv', [RelatorioController::class, 'production'])
                 ->name('reports.production');

@@ -296,11 +296,23 @@ class BetaSuiteTest extends TestCase
     public function test_tb11_production_consumes_ingredients_and_adds_finished_products(): void
     {
         $user = User::factory()->create();
-        $ingrediente = $this->createIngredient(stock: '1500.000');
+        $ingrediente = $this->createIngredient(stock: '0.000');
         $produto = $this->createProduct(stock: 3);
         $receita = $this->createRecipe($produto, $ingrediente, '200.000');
 
-        $response = $this->actingAs($user)->post(route('productions.store'), [
+        $this->actingAs($user)->post(route('purchases.store'), [
+            'data_compra' => now()->toDateString(),
+            'itens' => [
+                [
+                    'ingrediente_id' => $ingrediente->id,
+                    'quantidade' => '1500',
+                    'preco_custo' => '20.00',
+                    'data_validade' => now()->addDays(30)->toDateString(),
+                ],
+            ],
+        ])->assertRedirect(route('purchases.index'));
+
+        $response = $this->post(route('productions.store'), [
             'receita_id' => $receita->id,
             'quantidade_lotes' => 2,
         ]);
@@ -321,7 +333,7 @@ class BetaSuiteTest extends TestCase
     public function test_tb12_rolls_back_all_stock_changes_when_production_has_insufficient_ingredients(): void
     {
         $user = User::factory()->create();
-        $availableIngredient = $this->createIngredient(name: 'Farinha', stock: '1000.000');
+        $availableIngredient = $this->createIngredient(name: 'Farinha', stock: '0.000');
         $emptyIngredient = $this->createIngredient(name: 'Açúcar', stock: '0.000');
         $produto = $this->createProduct(stock: 2);
         $receita = $this->createRecipe($produto, $availableIngredient, '500.000');
@@ -329,6 +341,18 @@ class BetaSuiteTest extends TestCase
             'ingrediente_id' => $emptyIngredient->id,
             'quantidade_necessaria' => '500.000',
         ]);
+
+        $this->actingAs($user)->post(route('purchases.store'), [
+            'data_compra' => now()->toDateString(),
+            'itens' => [
+                [
+                    'ingrediente_id' => $availableIngredient->id,
+                    'quantidade' => '1000',
+                    'preco_custo' => '10.00',
+                    'data_validade' => now()->addDays(30)->toDateString(),
+                ],
+            ],
+        ])->assertRedirect(route('purchases.index'));
 
         $response = $this->actingAs($user)
             ->from(route('productions.create'))
@@ -340,7 +364,7 @@ class BetaSuiteTest extends TestCase
         $response->assertRedirect(route('productions.create'))
             ->assertSessionHasErrors('receita_id');
         $this->assertDatabaseCount('producoes', 0);
-        $this->assertDatabaseCount('ajustes_estoque', 0);
+        $this->assertDatabaseCount('ajustes_estoque', 1);
         $this->assertDatabaseHas('ingredientes', [
             'id' => $availableIngredient->id,
             'quantidade_estoque' => '1000.000',
@@ -352,6 +376,10 @@ class BetaSuiteTest extends TestCase
         $this->assertDatabaseHas('produtos', [
             'id' => $produto->id,
             'quantidade_estoque' => '2.000',
+        ]);
+        $this->assertDatabaseHas('lotes_ingredientes', [
+            'ingrediente_id' => $availableIngredient->id,
+            'quantidade_atual' => '1000.000',
         ]);
     }
 
@@ -456,6 +484,10 @@ class BetaSuiteTest extends TestCase
             ->assertOk()
             ->assertSee('Lotes vencidos ou próximos do vencimento')
             ->assertSee('LOTE-VENCIDO');
+        $this->get(route('ingredients'))
+            ->assertOk()
+            ->assertSee('Quantidade fora de validade')
+            ->assertSee('1,5 kg');
 
         $this->assertModelExists($lote);
         $this->assertDatabaseHas('lotes_ingredientes', [
@@ -464,21 +496,65 @@ class BetaSuiteTest extends TestCase
         ]);
     }
 
+    public function test_purchase_rejects_a_future_purchase_date_but_does_not_restrict_expiration_dates(): void
+    {
+        $user = User::factory()->create();
+        $ingrediente = $this->createIngredient(stock: '0.000');
+
+        $response = $this->actingAs($user)
+            ->from(route('purchases.create'))
+            ->post(route('purchases.store'), [
+                'data_compra' => now()->addDay()->toDateString(),
+                'itens' => [
+                    [
+                        'ingrediente_id' => $ingrediente->id,
+                        'quantidade' => '500',
+                        'preco_custo' => '10.00',
+                        'data_validade' => now()->subDay()->toDateString(),
+                    ],
+                ],
+            ]);
+
+        $response->assertRedirect(route('purchases.create'))
+            ->assertSessionHasErrors([
+                'data_compra' => 'A data da compra não pode ser futura.',
+            ]);
+        $this->assertDatabaseCount('compras', 0);
+        $this->assertDatabaseCount('lotes_ingredientes', 0);
+        $this->assertDatabaseHas('ingredientes', [
+            'id' => $ingrediente->id,
+            'quantidade_estoque' => '0.000',
+        ]);
+    }
+
     public function test_production_consumes_ingredient_lots_by_nearest_expiration_date(): void
     {
         $user = User::factory()->create();
         $ingrediente = $this->createIngredient(stock: '0.000');
+        $outroIngrediente = $this->createIngredient(name: 'Outro ingrediente', stock: '0.000');
         $produto = $this->createProduct();
-        $this->createRecipe($produto, $ingrediente, '1200.000');
+        $receita = $this->createRecipe($produto, $ingrediente, '1200.000');
+        ItemReceita::query()->create([
+            'receita_id' => $receita->id,
+            'ingrediente_id' => $outroIngrediente->id,
+            'quantidade_necessaria' => '400.000',
+        ]);
 
         $this->actingAs($user)->post(route('purchases.store'), [
             'data_compra' => now()->toDateString(),
             'itens' => [
                 [
                     'ingrediente_id' => $ingrediente->id,
+                    'quantidade' => '600',
+                    'preco_custo' => '6.00',
+                    'data_validade' => now()->subDay()->toDateString(),
+                    'codigo_lote' => 'LOTE-VENCIDO',
+                ],
+                [
+                    'ingrediente_id' => $ingrediente->id,
                     'quantidade' => '1000',
                     'preco_custo' => '10.00',
-                    'data_validade' => now()->addDays(2)->toDateString(),
+                    'data_validade' => now()->toDateString(),
                     'codigo_lote' => 'LOTE-PRIMEIRO',
                 ],
                 [
@@ -488,26 +564,148 @@ class BetaSuiteTest extends TestCase
                     'data_validade' => now()->addDays(30)->toDateString(),
                     'codigo_lote' => 'LOTE-SEGUNDO',
                 ],
+                [
+                    'ingrediente_id' => $outroIngrediente->id,
+                    'quantidade' => '800',
+                    'preco_custo' => '12.00',
+                    'data_validade' => now()->addDays(40)->toDateString(),
+                    'codigo_lote' => 'LOTE-OUTRO-INGREDIENTE',
+                ],
             ],
         ])->assertRedirect(route('purchases.index'));
 
-        $receita = Receita::query()->sole();
+        $productionDate = now()->subDay()->startOfMinute();
         $this->post(route('productions.store'), [
             'receita_id' => $receita->id,
             'quantidade_lotes' => 1,
+            'data_producao' => $productionDate->format('Y-m-d\TH:i'),
         ])->assertRedirect();
 
+        $producao = Producao::query()->sole();
+        $this->assertSame(
+            $productionDate->format('Y-m-d H:i:s'),
+            $producao->data_producao->format('Y-m-d H:i:s'),
+        );
         $this->assertDatabaseHas('lotes_ingredientes', [
             'codigo_lote' => 'LOTE-PRIMEIRO',
+            'quantidade_inicial' => '1000.000',
             'quantidade_atual' => '0.000',
         ]);
         $this->assertDatabaseHas('lotes_ingredientes', [
             'codigo_lote' => 'LOTE-SEGUNDO',
             'quantidade_atual' => '300.000',
         ]);
+        $this->assertDatabaseHas('lotes_ingredientes', [
+            'codigo_lote' => 'LOTE-VENCIDO',
+            'quantidade_inicial' => '600.000',
+            'quantidade_atual' => '600.000',
+        ]);
+        $this->assertDatabaseHas('lotes_ingredientes', [
+            'codigo_lote' => 'LOTE-OUTRO-INGREDIENTE',
+            'quantidade_inicial' => '800.000',
+            'quantidade_atual' => '400.000',
+        ]);
         $this->assertDatabaseHas('ingredientes', [
             'id' => $ingrediente->id,
-            'quantidade_estoque' => '300.000',
+            'quantidade_estoque' => '900.000',
+        ]);
+        $this->assertDatabaseHas('ingredientes', [
+            'id' => $outroIngrediente->id,
+            'quantidade_estoque' => '400.000',
+        ]);
+
+        $this->get(route('purchases.index'))
+            ->assertOk()
+            ->assertSee('Itens e lotes')
+            ->assertSee('LOTE-PRIMEIRO')
+            ->assertSee('LOTE-SEGUNDO')
+            ->assertSee('LOTE-OUTRO-INGREDIENTE')
+            ->assertSee('Comprado: 1.000 g')
+            ->assertSee('Usado: 1.000 g')
+            ->assertSee('Atual no lote: 0 g')
+            ->assertSee('Comprado: 500 g')
+            ->assertSee('Usado: 200 g')
+            ->assertSee('Atual no lote: 300 g')
+            ->assertSee('Outro ingrediente')
+            ->assertSee('Comprado: 800 g')
+            ->assertSee('Usado: 400 g')
+            ->assertSee('Atual no lote: 400 g');
+    }
+
+    public function test_production_is_rejected_when_only_expired_ingredient_lots_have_stock(): void
+    {
+        $user = User::factory()->create();
+        $ingrediente = $this->createIngredient(stock: '0.000');
+        $produto = $this->createProduct(stock: 2);
+        $receita = $this->createRecipe($produto, $ingrediente, '500.000');
+
+        $this->actingAs($user)->post(route('purchases.store'), [
+            'data_compra' => now()->toDateString(),
+            'itens' => [
+                [
+                    'ingrediente_id' => $ingrediente->id,
+                    'quantidade' => '1000',
+                    'preco_custo' => '10.00',
+                    'data_validade' => now()->subDay()->toDateString(),
+                    'codigo_lote' => 'LOTE-SOMENTE-VENCIDO',
+                ],
+            ],
+        ])->assertRedirect(route('purchases.index'));
+
+        $response = $this->from(route('productions.create'))
+            ->post(route('productions.store'), [
+                'receita_id' => $receita->id,
+                'quantidade_lotes' => 1,
+            ]);
+
+        $response->assertRedirect(route('productions.create'))
+            ->assertSessionHasErrors([
+                'receita_id' => "Estoque dentro da validade insuficiente para o ingrediente {$ingrediente->nome}.",
+            ]);
+        $this->assertDatabaseCount('producoes', 0);
+        $this->assertDatabaseCount('ajustes_estoque', 1);
+        $this->assertDatabaseHas('ingredientes', [
+            'id' => $ingrediente->id,
+            'quantidade_estoque' => '1000.000',
+        ]);
+        $this->assertDatabaseHas('lotes_ingredientes', [
+            'codigo_lote' => 'LOTE-SOMENTE-VENCIDO',
+            'quantidade_atual' => '1000.000',
+        ]);
+        $this->assertDatabaseHas('produtos', [
+            'id' => $produto->id,
+            'quantidade_estoque' => '2.000',
+        ]);
+    }
+
+    public function test_production_rejects_a_future_production_date(): void
+    {
+        $user = User::factory()->create();
+        $ingrediente = $this->createIngredient(stock: '0.000');
+        $produto = $this->createProduct();
+        $receita = $this->createRecipe($produto, $ingrediente, '500.000');
+
+        $response = $this->actingAs($user)
+            ->from(route('productions.create'))
+            ->post(route('productions.store'), [
+                'receita_id' => $receita->id,
+                'quantidade_lotes' => 1,
+                'data_producao' => now()->addDay()->format('Y-m-d\TH:i'),
+            ]);
+
+        $response->assertRedirect(route('productions.create'))
+            ->assertSessionHasErrors([
+                'data_producao' => 'A data e hora da produção não podem ser futuras.',
+            ]);
+        $this->assertDatabaseCount('producoes', 0);
+        $this->assertDatabaseCount('ajustes_estoque', 0);
+        $this->assertDatabaseHas('ingredientes', [
+            'id' => $ingrediente->id,
+            'quantidade_estoque' => '0.000',
+        ]);
+        $this->assertDatabaseHas('produtos', [
+            'id' => $produto->id,
+            'quantidade_estoque' => '0.000',
         ]);
     }
 
